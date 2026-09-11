@@ -27,7 +27,7 @@ requirements:
     - if: linux
       then:
         - freeglut
-        - libxi
+        - xorg-libxi
         - libxmu
   run:
     - freeimage
@@ -35,7 +35,7 @@ requirements:
     - if: linux
       then:
         - freeglut
-        - libxi
+        - xorg-libxi
         - libxmu
 
 tests:
