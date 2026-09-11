@@ -90,6 +90,11 @@ if [[ "$(uname)" == "Darwin" ]]; then
 else
     LUA_LIB="$(ls "$PREFIX"/lib/liblua*.so* 2>/dev/null | head -1)"
 fi
+LUA_INCLUDE="$(ls -d "$PREFIX"/include/lua* 2>/dev/null | head -1)"
+
+# FindLua52.cmake searches ENV LUA_DIR as its only hint for the prefix.
+# Set it so find_path/find_library resolve into the conda environment.
+export LUA_DIR="$PREFIX"
 
 mkdir -p build_simulator
 cd build_simulator
@@ -101,7 +106,7 @@ cmake "$SRC_DIR/src" \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DARGOS_BUILD_FOR=simulator \
     -DARGOS_DOCUMENTATION=OFF \
-    -DLUA_INCLUDE_DIR="$PREFIX/include" \
+    -DLUA_INCLUDE_DIR="$LUA_INCLUDE" \
     -DLUA_LIBRARIES="$LUA_LIB" \
     -DFREEIMAGE_INCLUDE_PATH="$PREFIX/include" \
     -DFREEIMAGE_LIBRARY="$PREFIX/lib/libFreeImage${SHLIB_EXT}" \
