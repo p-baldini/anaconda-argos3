@@ -1,0 +1,22 @@
+[workspace]
+name = "anaconda-argos3"
+version = "0.1.0"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-64", "osx-arm64"]
+
+[dependencies]
+rattler-build = ">=0.36"
+anaconda-client = "*"
+
+[tasks]
+build-beta59 = { cmd = "rattler-build build --recipe recipe/beta59 --output-dir output" }
+build-beta48 = { cmd = "rattler-build build --recipe recipe/beta48 --output-dir output" }
+build-all    = { depends-on = ["build-beta48", "build-beta59"] }
+
+# rattler-build is exposed as a task so the upload job in CI can call it
+# via `pixi run rattler-build upload anaconda ...`
+rattler-build = { cmd = "rattler-build" }
+
+upload-beta59 = { cmd = "rattler-build upload anaconda --owner $ANACONDA_OWNER --force output/linux-64/argos3-3.0.0.0.beta59-*.conda", depends-on = ["build-beta59"] }
+upload-beta48 = { cmd = "rattler-build upload anaconda --owner $ANACONDA_OWNER --force output/linux-64/argos3-3.0.0.0.beta48-*.conda", depends-on = ["build-beta48"] }
+release       = { depends-on = ["upload-beta48", "upload-beta59"] }
