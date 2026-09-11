@@ -1,0 +1,103 @@
+name: Build and upload conda packages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]   # build only, no upload on PRs
+  workflow_dispatch:   # allow manual runs from the GitHub UI
+
+# Only one release at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (${{ matrix.version }} · ${{ matrix.platform.runner }})
+    runs-on: ${{ matrix.platform.runner }}
+
+    strategy:
+      fail-fast: false   # keep other platforms building even if one fails
+      matrix:
+        version: [beta48, beta59]
+        platform:
+          # ── macOS Apple Silicon ───────────────────────────────────────────
+          - runner: macos-15           # M-series GitHub runner (osx-arm64)
+            target: osx-arm64
+
+          # ── macOS Intel ───────────────────────────────────────────────────
+          - runner: macos-13           # Intel GitHub runner (osx-64)
+            target: osx-64
+
+          # ── Linux x86-64 ─────────────────────────────────────────────────
+          - runner: ubuntu-24.04
+            target: linux-64
+
+    steps:
+      - name: Checkout feedstock
+        uses: actions/checkout@v4
+
+      # pixi is the only tool we need on the runner
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          pixi-version: latest
+          cache: true
+
+      # rattler-build is declared as a dependency in pixi.toml
+      - name: Build ${{ matrix.version }} for ${{ matrix.platform.target }}
+        run: pixi run build-${{ matrix.version }}
+        env:
+          # Prevent rattler-build from trying to open a browser for auth
+          RATTLER_BUILD_NO_PROGRESS: "1"
+
+      # Upload the built .conda file as a GitHub artifact so you can
+      # download and test it locally before it hits Anaconda.org
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: argos3-${{ matrix.version }}-${{ matrix.platform.target }}
+          path: output/${{ matrix.platform.target }}/argos3-*.conda
+          if-no-files-found: error
+          retention-days: 7
+
+  # ── Upload to Anaconda.org (only on pushes to main, not on PRs) ───────────
+  upload:
+    name: Upload to Anaconda.org
+    needs: build                         # wait for ALL builds to succeed
+    runs-on: ubuntu-24.04
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout feedstock
+        uses: actions/checkout@v4
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          pixi-version: latest
+          cache: true
+
+      # Download every platform artifact into output/ so rattler-build
+      # upload can find them all in one shot
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: output/
+          merge-multiple: true   # flatten into output/ directly
+
+      - name: List packages to upload
+        run: find output/ -name "*.conda" | sort
+
+      - name: Upload all packages to Anaconda.org
+        run: |
+          pixi run rattler-build upload anaconda \
+            --owner "$ANACONDA_OWNER" \
+            --channel "$ANACONDA_CHANNEL" \
+            --force \
+            $(find output/ -name "*.conda" | tr '\n' ' ')
+        env:
+          ANACONDA_OWNER: ${{ secrets.ANACONDA_OWNER }}
+          ANACONDA_CHANNEL: ${{ secrets.ANACONDA_CHANNEL }}
+          RATTLER_BUILD_ANACONDA_API_KEY: ${{ secrets.ANACONDA_TOKEN }}
