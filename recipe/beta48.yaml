@@ -1,0 +1,56 @@
+context:
+  version: "3.0.0.0.beta48"
+  version_tag: "3.0.0-beta48"
+  sha256: "0ff4bb312bbdd575440bda70f3f732127aa0e257be681a7674b78530090d4542"
+
+package:
+  name: argos3
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ilpincy/argos3/archive/${{ version_tag }}.tar.gz
+  sha256: ${{ sha256 }}
+
+build:
+  number: 0
+  script: bash ${{ RECIPE_DIR }}/../build.sh
+
+requirements:
+  build:
+    - ${{ compiler("cxx") }}
+    - cmake >=3.5.1
+    - make
+    - pkg-config
+  host:
+    - freeimage
+    - lua 5.5.*
+    - if: linux
+      then:
+        - freeglut
+        - libxi
+        - libxmu
+  run:
+    - freeimage
+    - lua 5.5.*
+    - if: linux
+      then:
+        - freeglut
+        - libxi
+        - libxmu
+
+tests:
+  - script:
+      - argos3 --version
+      - test -d $PREFIX/include/argos3
+
+about:
+  homepage: https://www.argos-sim.info
+  license: MIT
+  license_file: LICENSE
+  summary: ARGoS – a fast, parallel, multi-physics, multi-robot simulator (beta48 / legacy)
+  description: |
+    ARGoS is a highly scalable multi-robot simulator used widely in
+    swarm-robotics research. This legacy build (3.0.0-beta48) is kept for
+    compatibility with older plug-ins (e.g. argos3-epuck v48).
+  documentation: https://www.argos-sim.info/documentation.php
+  repository: https://github.com/ilpincy/argos3
