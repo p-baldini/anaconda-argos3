@@ -23,7 +23,7 @@ requirements:
     - pkg-config
   host:
     - freeimage
-    - lua==5.5.0
+    - lua 5.5.*
     - if: linux
       then:
         - freeglut

@@ -86,7 +86,7 @@ echo "Patched tr1/unordered_map in entity.h"
 
 # –– Resolve Lua library path (name differs across platforms) –––––––––––––––––
 if [[ "$(uname)" == "Darwin" ]]; then
-    LUA_LIB="$PREFIX/lib/liblua.dylib"
+    LUA_LIB="$(ls "$PREFIX"/lib/liblua*.dylib 2>/dev/null | head -1)"
 else
     LUA_LIB="$(ls "$PREFIX"/lib/liblua*.so* 2>/dev/null | head -1)"
 fi
