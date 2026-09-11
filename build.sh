@@ -90,8 +90,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
 else
     LUA_LIB="$(ls "$PREFIX"/lib/liblua*.so* 2>/dev/null | head -1)"
 fi
-#LUA_INCLUDE="$PREFIX/include" 
-LUA_INCLUDE="$(ls -d "$PREFIX"/include/lua* 2>/dev/null | head -1)"
+LUA_INCLUDE="$PREFIX/include"
 
 echo "Lua lib:     $LUA_LIB"
 echo "Lua include: $LUA_INCLUDE"
