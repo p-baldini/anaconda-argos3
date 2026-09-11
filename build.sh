@@ -92,10 +92,25 @@ else
 fi
 LUA_INCLUDE="$(ls -d "$PREFIX"/include/lua* 2>/dev/null | head -1)"
 
-# FindLua52.cmake searches ENV LUA_DIR as its only hint for the prefix.
-# Set it so find_path/find_library resolve into the conda environment.
-export LUA_DIR="$PREFIX"
+echo "Lua lib:     $LUA_LIB"
+echo "Lua include: $LUA_INCLUDE"
 
+# ── Replace FindLua52.cmake (beta48 only) ─────────────────────────────────────
+# beta48 ships a custom FindLua52.cmake hardcoded for lua 5.2 paths. Rather
+# than patching it we overwrite it with a stub that sets the three variables
+# CMake needs directly, bypassing all find_path/find_library logic entirely.
+# beta59 uses CMake's standard FindLua module so this file won't be present.
+if [[ -f "$SRC_DIR/src/cmake/FindLua52.cmake" ]]; then
+  cat > "$SRC_DIR/src/cmake/FindLua52.cmake" << EOF
+set(LUA_INCLUDE_DIR  "$LUA_INCLUDE")
+set(LUA_LIBRARIES    "$LUA_LIB")
+set(LUA_VERSION_STRING "5.4")
+set(LUA52_FOUND TRUE)
+EOF
+  echo "Replaced FindLua52.cmake with direct-path stub"
+fi
+
+# ── Configure ─────────────────────────────────────────────────────────────────
 mkdir -p build_simulator
 cd build_simulator
 
