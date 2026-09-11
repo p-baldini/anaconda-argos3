@@ -95,19 +95,18 @@ LUA_INCLUDE="$PREFIX/include" # LUA_INCLUDE="$(ls -d "$PREFIX"/include/lua* 2>/d
 echo "Lua lib:     $LUA_LIB"
 echo "Lua include: $LUA_INCLUDE"
 
-# ── Replace FindLua52.cmake (beta48 only) ─────────────────────────────────────
-# beta48 ships a custom FindLua52.cmake hardcoded for lua 5.2 paths. Rather
-# than patching it we overwrite it with a stub that sets the three variables
-# CMake needs directly, bypassing all find_path/find_library logic entirely.
-# beta59 uses CMake's standard FindLua module so this file won't be present.
-if [[ -f "$SRC_DIR/src/cmake/FindLua52.cmake" ]]; then
-  cat > "$SRC_DIR/src/cmake/FindLua52.cmake" << EOF
-set(LUA_INCLUDE_DIR  "$LUA_INCLUDE")
-set(LUA_LIBRARIES    "$LUA_LIB")
-set(LUA_VERSION_STRING "5.4")
-set(LUA52_FOUND TRUE)
-EOF
-  echo "Replaced FindLua52.cmake with direct-path stub"
+# ── Patch ARGoSBuildChecks.cmake (beta48 only) ────────────────────────────────
+# beta48 uses find_package(Lua52) which hardcodes lua 5.2 search paths and
+# ignores CMAKE_PREFIX_PATH. We patch the caller to skip that call entirely
+# and hard-code the conda-resolved paths directly.
+# The sed replaces the single find_package(Lua52) line with three set() lines.
+# beta59 uses CMake's standard FindLua so ARGoSBuildChecks won't have Lua52.
+if grep -q "find_package(Lua52)" "$SRC_DIR/src/cmake/ARGoSBuildChecks.cmake"; then
+  sed -i.bak \
+    "s|find_package(Lua52)|set(LUA_INCLUDE_DIR \"$LUA_INCLUDE\" CACHE PATH \"\" FORCE)\nset(LUA_LIBRARIES \"$LUA_LIB\" CACHE FILEPATH \"\" FORCE)\nset(LUA52_FOUND TRUE)|" \
+    "$SRC_DIR/src/cmake/ARGoSBuildChecks.cmake"
+  echo "Patched ARGoSBuildChecks.cmake to skip find_package(Lua52)"
+  grep -A4 "LUA_INCLUDE_DIR" "$SRC_DIR/src/cmake/ARGoSBuildChecks.cmake" | head -6
 fi
 
 # ── Configure ─────────────────────────────────────────────────────────────────
