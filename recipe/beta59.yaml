@@ -28,7 +28,7 @@ requirements:
       then:
         - freeglut
         - xorg-libxi
-        - libxmu
+        - xorg-libxmu
   run:
     - freeimage
     - lua 5.5.*
@@ -36,7 +36,7 @@ requirements:
       then:
         - freeglut
         - xorg-libxi
-        - libxmu
+        - xorg-libxmu
 
 tests:
   - script:
