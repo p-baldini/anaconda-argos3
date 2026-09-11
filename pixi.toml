@@ -9,8 +9,8 @@ rattler-build = ">=0.36"
 anaconda-client = "*"
 
 [tasks]
-build-beta59 = { cmd = "rattler-build build --recipe recipe/beta59 --output-dir output" }
-build-beta48 = { cmd = "rattler-build build --recipe recipe/beta48 --output-dir output" }
+build-beta59 = { cmd = "rattler-build build --recipe recipe/beta59.yaml --output-dir output" }
+build-beta48 = { cmd = "rattler-build build --recipe recipe/beta48.yaml --output-dir output" }
 build-all    = { depends-on = ["build-beta48", "build-beta59"] }
 
 # rattler-build is exposed as a task so the upload job in CI can call it
