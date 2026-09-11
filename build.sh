@@ -108,6 +108,9 @@ if grep -q "find_package(Lua52)" "$SRC_DIR/src/cmake/ARGoSBuildChecks.cmake"; th
   echo "Patched ARGoSBuildChecks.cmake: Lua52 -> Lua"
 fi
 
+# FindLua uses ENV LUA_DIR as its search hint
+export LUA_DIR="$PREFIX"
+
 # ── Configure ─────────────────────────────────────────────────────────────────
 mkdir -p build_simulator
 cd build_simulator
@@ -120,8 +123,6 @@ cmake "$SRC_DIR/src" \
     -DARGOS_BUILD_FOR=simulator \
     -DARGOS_DOCUMENTATION=OFF \
     -DARGOS_INSTALL_LDSOCONF=OFF \
-    -DLUA_INCLUDE_DIR="$LUA_INCLUDE" \
-    -DLUA_LIBRARIES="$LUA_LIB" \
     -DFREEIMAGE_INCLUDE_PATH="$PREFIX/include" \
     -DFREEIMAGE_LIBRARY="$PREFIX/lib/libFreeImage${SHLIB_EXT}" \
     -DCMAKE_INSTALL_RPATH="$PREFIX/lib;$PREFIX/lib/argos3" \
