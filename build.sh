@@ -121,7 +121,20 @@ if [[ -f "$SRC_DIR/src/cmake/FindLua52.cmake" ]]; then
   echo "--- ARGoSBuildChecks.cmake lua block:"
   grep -n -A5 'LUA_INCLUDE_DIR' "$SRC_DIR/src/cmake/ARGoSBuildChecks.cmake" | head -8
 
-  # (3) Belt and braces: add a global include_directories() right after the
+  # (3) LINUX-ONLY BUG: beta48 does
+  #       set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-as-needed")
+  #     a plain set with no ${CMAKE_SHARED_LINKER_FLAGS}, which WIPES conda's
+  #     -L$PREFIX/lib from LDFLAGS. That makes the linker unable to find
+  #     freeimage, freeimageplus and lua, which all live in $PREFIX/lib.
+  #     beta59 fixed this upstream by appending; we apply the same fix here.
+  #     (macOS is unaffected: its branch already appends correctly.)
+  perl -i -pe \
+    's|^(\s*)set\(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-as-needed"\)|$1set(CMAKE_SHARED_LINKER_FLAGS "\${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-as-needed")|' \
+    "$SRC_DIR/src/cmake/ARGoSBuildFlags.cmake"
+  echo "--- ARGoSBuildFlags.cmake shared linker line:"
+  grep -n 'CMAKE_SHARED_LINKER_FLAGS "' "$SRC_DIR/src/cmake/ARGoSBuildFlags.cmake"
+
+  # (4) Belt and braces: add a global include_directories() right after the
   #     existing one at the top of CMakeLists.txt, before any add_subdirectory.
   perl -i -pe \
     "s|^include_directories\\(\\\$\\{CMAKE_SOURCE_DIR\\} \\\$\\{CMAKE_BINARY_DIR\\}\\)|include_directories(\\\${CMAKE_SOURCE_DIR} \\\${CMAKE_BINARY_DIR} $LUA_INCLUDE)|" \
