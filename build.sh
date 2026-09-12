@@ -95,17 +95,39 @@ LUA_INCLUDE="$PREFIX/include"
 echo "Lua lib:     $LUA_LIB"
 echo "Lua include: $LUA_INCLUDE"
 
-# ── Patch ARGoSBuildChecks.cmake (beta48 only) ────────────────────────────────
-# beta48 ships FindLua52.cmake which only searches for lua 5.2.
-# We bypass all CMake Lua detection by replacing the find_package(Lua52) call
-# with direct set() calls using the paths we already resolved above.
-# Using CACHE FORCE ensures these override anything set by -D flags.
-if grep -q "find_package(Lua52)" "$SRC_DIR/src/cmake/ARGoSBuildChecks.cmake"; then
+# ── Patch beta48 CMake for lua 5.4 ───────────────────────────────────────────
+# beta48 has two problems that beta59 does not:
+#
+#  1. ARGoSBuildFlags.cmake does `set(CMAKE_CXX_FLAGS "-Wall")` — a plain set
+#     with no ${CMAKE_CXX_FLAGS} prefix, which WIPES any -DCMAKE_CXX_FLAGS we
+#     pass on the command line. We patch that line to append our -I flag.
+#
+#  2. find_package(Lua52) hardcodes lua 5.2 search paths. We replace it with
+#     direct set() calls using the paths resolved above.
+#
+if [[ -f "$SRC_DIR/src/cmake/FindLua52.cmake" ]]; then
+
+  # (1) Append the lua include dir to the hardcoded CMAKE_CXX_FLAGS line
+  perl -i -pe \
+    "s|^set\\(CMAKE_CXX_FLAGS\\s+\"-Wall\"\\)|set(CMAKE_CXX_FLAGS \"-Wall -I$LUA_INCLUDE\")|" \
+    "$SRC_DIR/src/cmake/ARGoSBuildFlags.cmake"
+  echo "--- ARGoSBuildFlags.cmake CXX flags line:"
+  grep -n 'set(CMAKE_CXX_FLAGS' "$SRC_DIR/src/cmake/ARGoSBuildFlags.cmake"
+
+  # (2) Replace find_package(Lua52) with direct paths
   perl -i -0pe \
-    "s|find_package\\(Lua52\\)|set(LUA_INCLUDE_DIR \"$LUA_INCLUDE\" CACHE PATH \"\" FORCE)\nset(LUA_LIBRARIES   \"$LUA_LIB\"    CACHE FILEPATH \"\" FORCE)\nset(LUA_VERSION_STRING \"5.4\"       CACHE STRING \"\" FORCE)\nset(LUA52_FOUND TRUE)|" \
+    "s|find_package\\(Lua52\\)|set(LUA_INCLUDE_DIR \"$LUA_INCLUDE\" CACHE PATH \"\" FORCE)\nset(LUA_LIBRARIES \"$LUA_LIB\" CACHE FILEPATH \"\" FORCE)\nset(LUA_VERSION_STRING \"5.4\" CACHE STRING \"\" FORCE)\nset(LUA52_FOUND TRUE)|" \
     "$SRC_DIR/src/cmake/ARGoSBuildChecks.cmake"
-  echo "Patched ARGoSBuildChecks.cmake"
-  grep -A5 "LUA_INCLUDE_DIR" "$SRC_DIR/src/cmake/ARGoSBuildChecks.cmake" | head -8
+  echo "--- ARGoSBuildChecks.cmake lua block:"
+  grep -n -A5 'LUA_INCLUDE_DIR' "$SRC_DIR/src/cmake/ARGoSBuildChecks.cmake" | head -8
+
+  # (3) Belt and braces: add a global include_directories() right after the
+  #     existing one at the top of CMakeLists.txt, before any add_subdirectory.
+  perl -i -pe \
+    "s|^include_directories\\(\\\$\\{CMAKE_SOURCE_DIR\\} \\\$\\{CMAKE_BINARY_DIR\\}\\)|include_directories(\\\${CMAKE_SOURCE_DIR} \\\${CMAKE_BINARY_DIR} $LUA_INCLUDE)|" \
+    "$SRC_DIR/src/CMakeLists.txt"
+  echo "--- CMakeLists.txt include_directories line:"
+  grep -n 'include_directories' "$SRC_DIR/src/CMakeLists.txt" | head -3
 fi
 
 # ── Configure ─────────────────────────────────────────────────────────────────
@@ -114,7 +136,6 @@ cd build_simulator
 
 cmake "$SRC_DIR/src" \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_CXX_FLAGS="-I$LUA_INCLUDE" \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_PREFIX_PATH="$PREFIX" \
     -DCMAKE_INSTALL_LIBDIR=lib \
