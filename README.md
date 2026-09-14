@@ -2,6 +2,8 @@
 
 An Anaconda recipe to build and install the [ARGoS3 multi-robot simulator](https://www.argos-sim.info).
 
+Anaconda link: [https://anaconda.org/channels/pbaldini/packages/argos3/overview](https://anaconda.org/channels/pbaldini/packages/argos3/overview)
+
 ## Installing from Anaconda repository
 
 From conda:
