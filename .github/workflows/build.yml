@@ -1,4 +1,4 @@
-name: Build and upload conda packages
+name: Build and upload anaconda packages
 
 on:
   push:
@@ -109,7 +109,7 @@ jobs:
 
       - name: Upload all packages to Anaconda.org
         run: |
-          pixi run rattler-build upload anaconda \
+          pixi run rattler-build upload anaconda --owner $ANACONDA_OWNER \
             $(find output/ -name "*.conda" | tr '\n' ' ')
         env:
           # rattler-build reads all of these straight from the environment,
