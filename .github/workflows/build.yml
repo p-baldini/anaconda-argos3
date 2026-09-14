@@ -27,12 +27,12 @@ jobs:
             target: osx-arm64
 
           # ── macOS Intel ───────────────────────────────────────────────────
-          # - runner: macos-15-intel     # Intel GitHub runner (osx-64)
-          #   target: osx-64
+          - runner: macos-15-intel     # Intel GitHub runner (osx-64)
+            target: osx-64
 
           # ── Linux x86-64 ─────────────────────────────────────────────────
-          # - runner: ubuntu-24.04
-          #   target: linux-64
+          - runner: ubuntu-24.04
+            target: linux-64
 
     steps:
       - name: Checkout feedstock
@@ -73,11 +73,11 @@ jobs:
       - name: Checkout feedstock
         uses: actions/checkout@v4
 
-      # - name: Set up pixi
-      #   uses: prefix-dev/setup-pixi@v0.8.8
-      #   with:
-      #     pixi-version: latest
-      #     cache: true
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          pixi-version: latest
+          cache: true
 
       # Download every platform artifact into output/ so rattler-build
       # upload can find them all in one shot
@@ -108,20 +108,12 @@ jobs:
         run: find output/ -name "*.conda" | sort
 
       - name: Upload all packages to Anaconda.org
-        uses: anaconda/actions/upload-package@v0.3.1
-        with:
-          token: ${{ secrets.ANACONDA_API_KEY }}
-          channel: ${{ secrets.ANACONDA_OWNER }}
-          packages: $(find output/ -name "*.conda" | tr '\n' ' ')
-
-      # - name: Upload all packages to Anaconda.org
-      #   run: |
-      #     pixi run rattler-build upload anaconda --owner $ANACONDA_OWNER \
-      #       $(find output/ -name "*.conda" | tr '\n' ' ')
-      #   env:
-      #     # rattler-build reads all of these straight from the environment,
-      #     # so no CLI flags are needed (and none can end up empty).
-      #     ANACONDA_OWNER:   ${{ secrets.ANACONDA_OWNER }}
-      #     ANACONDA_API_KEY: ${{ secrets.ANACONDA_API_KEY }}
-      #     ANACONDA_CHANNEL: main
-      #     ANACONDA_FORCE:   "true"
+        run: |
+          pixi run rattler-build upload anaconda $(find output/ -name "*.conda" | tr '\n' ' ')
+        env:
+          # rattler-build reads all of these straight from the environment,
+          # so no CLI flags are needed (and none can end up empty).
+          ANACONDA_OWNER:   ${{ secrets.ANACONDA_OWNER }}
+          ANACONDA_API_KEY: ${{ secrets.ANACONDA_API_KEY }}
+          ANACONDA_CHANNEL: main
+          ANACONDA_FORCE:   "true"
