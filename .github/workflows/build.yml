@@ -87,17 +87,34 @@ jobs:
           path: output/
           merge-multiple: true   # flatten into output/ directly
 
+      - name: Check required secrets are set
+        run: |
+          missing=0
+          if [ -z "$ANACONDA_OWNER" ]; then
+            echo "::error::Secret ANACONDA_OWNER is not set"
+            missing=1
+          fi
+          if [ -z "$ANACONDA_API_KEY" ]; then
+            echo "::error::Secret ANACONDA_API_KEY is not set"
+            missing=1
+          fi
+          [ "$missing" -eq 0 ] || exit 1
+          echo "Uploading as owner: $ANACONDA_OWNER"
+        env:
+          ANACONDA_OWNER: ${{ secrets.ANACONDA_OWNER }}
+          ANACONDA_API_KEY: ${{ secrets.ANACONDA_API_KEY }}
+
       - name: List packages to upload
         run: find output/ -name "*.conda" | sort
 
       - name: Upload all packages to Anaconda.org
         run: |
           pixi run rattler-build upload anaconda \
-            --owner "$ANACONDA_OWNER" \
-            --channel "$ANACONDA_CHANNEL" \
-            --force \
             $(find output/ -name "*.conda" | tr '\n' ' ')
         env:
-          ANACONDA_OWNER: ${{ secrets.ANACONDA_OWNER }}
-          ANACONDA_CHANNEL: ${{ secrets.ANACONDA_CHANNEL }}
-          RATTLER_BUILD_ANACONDA_API_KEY: ${{ secrets.ANACONDA_TOKEN }}
+          # rattler-build reads all of these straight from the environment,
+          # so no CLI flags are needed (and none can end up empty).
+          ANACONDA_OWNER:   ${{ secrets.ANACONDA_OWNER }}
+          ANACONDA_API_KEY: ${{ secrets.ANACONDA_API_KEY }}
+          ANACONDA_CHANNEL: main
+          ANACONDA_FORCE:   "true"
