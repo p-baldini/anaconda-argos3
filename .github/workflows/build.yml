@@ -108,7 +108,7 @@ jobs:
         run: find output/ -name "*.conda" | sort
 
       - name: Upload all packages to Anaconda.org
-        uses: anaconda/actions/upload-package@v0
+        uses: anaconda/actions/upload-package@v0.3.1
         with:
           token: ${{ secrets.ANACONDA_API_KEY }}
           channel: ${{ secrets.ANACONDA_OWNER }}
