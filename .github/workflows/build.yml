@@ -27,12 +27,12 @@ jobs:
             target: osx-arm64
 
           # ── macOS Intel ───────────────────────────────────────────────────
-          - runner: macos-15-intel     # Intel GitHub runner (osx-64)
-            target: osx-64
+          # - runner: macos-15-intel     # Intel GitHub runner (osx-64)
+          #   target: osx-64
 
           # ── Linux x86-64 ─────────────────────────────────────────────────
-          - runner: ubuntu-24.04
-            target: linux-64
+          # - runner: ubuntu-24.04
+          #   target: linux-64
 
     steps:
       - name: Checkout feedstock
@@ -112,7 +112,7 @@ jobs:
         with:
           token: ${{ secrets.ANACONDA_API_KEY }}
           channel: ${{ secrets.ANACONDA_OWNER }}
-          packages: output/**/*.conda
+          packages: $(find output/ -name "*.conda" | tr '\n' ' ')
 
       # - name: Upload all packages to Anaconda.org
       #   run: |
