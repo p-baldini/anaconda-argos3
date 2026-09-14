@@ -1,33 +1,25 @@
-# ARGoS3 conda package
+# ARGoS3 Anaconda package
 
-A conda recipe to build and install the [ARGoS3 multi-robot simulator](https://www.argos-sim.info) from source.
+An Anaconda recipe to build and install the [ARGoS3 multi-robot simulator](https://www.argos-sim.info).
 
-## What is ARGoS3?
-
-ARGoS (multi-physics multi-robot simulator) is a highly scalable,
-parallel multi-robot simulator used widely in swarm-robotics research.
-Key features:
-
-- **Modular plug-in architecture** – robots, physics engines, visualisations
-  and controllers are all plug-ins.
-- **Multiple simultaneous physics engines** – 2D and 3D engines can coexist
-  in the same experiment.
-- **Lua scripting** – rapid controller prototyping without recompiling.
-- **Qt/OpenGL visualisation** – interactive 3-D rendering for debugging.
-
-## Installing
+## Installing from Anaconda repository
 
 From conda:
 
-```conda install argos3```
+```bash
+conda install pbaldini::argos3[==3.0.0.0.beta48|==3.0.0.0.beta59]
+```
 
 From pixi:
 
-```pixi add argos3```
-
-From sources:
-
+```bash
+pixi workspace channel add https://conda.anaconda.org/pbaldini
+pixi add pbaldini::argos3[==3.0.0.0.beta48|==3.0.0.0.beta59]
 ```
+
+From sources (for debug purpose):
+
+```bash
 # Init the pixi environment
 pixi install
 pixi shell
@@ -35,9 +27,9 @@ pixi shell
 # Launch the build tool (installed with pixi)
 pixi build-beta59 # or 48
 
-# Install locally with conda
-conda install --use-local argos3
-
 # Install locally with pixi
-pixi add $(pwd)/output/osx-arm64/argos3-3.0.0.0.beta59-h60d57d3_0.conda
+pixi add $(pwd)/output/osx-arm64/argos3-3.0.0.0.beta59-*.conda
+
+# (OR) Install locally with conda
+conda install --use-local argos3
 ```
