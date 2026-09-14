@@ -5,8 +5,7 @@ channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64", "osx-arm64"]
 
 [dependencies]
-rattler-build = ">=0.36"
-anaconda-client = "*"
+rattler-build = ">=0.76.0,<0.77"
 
 [tasks]
 build-beta59 = { cmd = "rattler-build build --recipe recipe/beta59.yaml --output-dir output" }
@@ -17,6 +16,7 @@ build-all    = { depends-on = ["build-beta48", "build-beta59"] }
 # via `pixi run rattler-build upload anaconda ...`
 rattler-build = { cmd = "rattler-build" }
 
-upload-beta59 = { cmd = "rattler-build upload anaconda --owner $ANACONDA_OWNER --force output/linux-64/argos3-3.0.0.0.beta59-*.conda", depends-on = ["build-beta59"] }
-upload-beta48 = { cmd = "rattler-build upload anaconda --owner $ANACONDA_OWNER --force output/linux-64/argos3-3.0.0.0.beta48-*.conda", depends-on = ["build-beta48"] }
-release       = { depends-on = ["upload-beta48", "upload-beta59"] }
+# Upload everything built so far. Reads ANACONDA_OWNER / ANACONDA_API_KEY
+# from the environment, or falls back to the token stored by `rattler-build
+# auth login anaconda.org`.
+upload = { cmd = "bash -c 'rattler-build upload anaconda $(find output -name \"*.conda\")'" }
