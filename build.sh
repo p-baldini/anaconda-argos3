@@ -84,6 +84,20 @@ perl -i -0pe \
   "$SRC_DIR/src/core/simulator/entity/entity.h"
 echo "Patched tr1/unordered_map in entity.h"
 
+# ── Keep the default plugin path valid after conda prefix relocation ─────────
+# DEFAULT_PLUGIN_PATH is built from a literal containing $PREFIX. Clang bakes
+# the literal's length into the std::string constructor, so after conda
+# rewrites the prefix (padding with NULs) the string keeps the old length and
+# contains embedded NULs: dlopen() then sees only the directory and fails with
+# 'Can't load library "<prefix>/lib/argos3/"'. Reading the literal through a
+# volatile pointer forces strlen() at runtime.
+perl -i -pe \
+  's|^(\s*)(const std::string CDynamicLoading::DEFAULT_PLUGIN_PATH = )(ARGOS_INSTALL_PREFIX "/lib/argos3/");|$1static const char* volatile pchDefaultPluginPath = $3;\n$1$2pchDefaultPluginPath;|' \
+  "$SRC_DIR/src/core/utility/plugins/dynamic_loading.cpp"
+grep -q 'pchDefaultPluginPath' "$SRC_DIR/src/core/utility/plugins/dynamic_loading.cpp" \
+  || { echo "ERROR: could not patch DEFAULT_PLUGIN_PATH in dynamic_loading.cpp"; exit 1; }
+echo "Patched DEFAULT_PLUGIN_PATH in dynamic_loading.cpp"
+
 # –– Resolve Lua library path (name differs across platforms) –––––––––––––––––
 if [[ "$(uname)" == "Darwin" ]]; then
     LUA_LIB="$(ls "$PREFIX"/lib/liblua*.dylib 2>/dev/null | head -1)"
