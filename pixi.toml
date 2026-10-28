@@ -5,7 +5,7 @@ channels = ["conda-forge"]
 platforms = ["linux-64", "osx-64", "osx-arm64"]
 
 [dependencies]
-rattler-build = ">=0.76.0,<0.77"
+rattler-build = ">=0.79.0,<0.80"
 
 [tasks]
 build-beta59 = { cmd = "rattler-build build --recipe recipe/beta59.yaml --output-dir output" }
