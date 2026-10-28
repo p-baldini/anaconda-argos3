@@ -35,3 +35,7 @@ pixi add $(pwd)/output/osx-arm64/argos3-3.0.0.0.beta59-*.conda
 # (OR) Install locally with conda
 conda install --use-local argos3
 ```
+
+## For contributors
+
+Whenever you work on a change in the following repository, keep in mind that a push to master will trigger a GitHub action that compiles and uploads the package to Anaconda.

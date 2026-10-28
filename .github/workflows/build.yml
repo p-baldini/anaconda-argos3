@@ -2,9 +2,9 @@ name: Build and upload anaconda packages
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]   # build only, no upload on PRs
+    branches: [master]   # build only, no upload on PRs
   workflow_dispatch:   # allow manual runs from the GitHub UI
 
 # Only one release at a time
