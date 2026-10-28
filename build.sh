@@ -197,17 +197,27 @@ make install
 
 # ── Activation scripts ────────────────────────────────────────────────────────
 # conda and pixi source etc/conda/activate.d/*.sh when the environment is
-# activated. Point CMAKE_INSTALL_PREFIX (read from the environment by
-# CMake >= 3.29) at the env, so ARGoSConfig.cmake and user projects resolve
-# ARGoS there instead of /usr/local. Any previous value is restored on
-# deactivation.
+# activated. Point CMake at the env so user projects resolve ARGoS there
+# instead of /usr/local:
+#   CMAKE_INSTALL_PREFIX  the env (read from the environment by CMake >= 3.29)
+#   CMAKE_PREFIX_PATH     the env, prepended to any existing entries
+#   ARGoS_DIR             the folder holding ARGoSConfig.cmake (beta59 only)
+# Any previous values are restored on deactivation.
 mkdir -p "$PREFIX/etc/conda/activate.d" "$PREFIX/etc/conda/deactivate.d"
 
 cat > "$PREFIX/etc/conda/activate.d/argos3_activate.sh" << 'EOF'
 if [ -n "${CMAKE_INSTALL_PREFIX+x}" ]; then
   export _ARGOS3_BACKUP_CMAKE_INSTALL_PREFIX="$CMAKE_INSTALL_PREFIX"
 fi
+if [ -n "${CMAKE_PREFIX_PATH+x}" ]; then
+  export _ARGOS3_BACKUP_CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH"
+fi
+if [ -n "${ARGoS_DIR+x}" ]; then
+  export _ARGOS3_BACKUP_ARGoS_DIR="$ARGoS_DIR"
+fi
 export CMAKE_INSTALL_PREFIX="$CONDA_PREFIX"
+export CMAKE_PREFIX_PATH="$CONDA_PREFIX${CMAKE_PREFIX_PATH:+:$CMAKE_PREFIX_PATH}"
+export ARGoS_DIR="$CONDA_PREFIX/share/argos3/cmake"
 EOF
 
 cat > "$PREFIX/etc/conda/deactivate.d/argos3_deactivate.sh" << 'EOF'
@@ -216,5 +226,17 @@ if [ -n "${_ARGOS3_BACKUP_CMAKE_INSTALL_PREFIX+x}" ]; then
   unset _ARGOS3_BACKUP_CMAKE_INSTALL_PREFIX
 else
   unset CMAKE_INSTALL_PREFIX
+fi
+if [ -n "${_ARGOS3_BACKUP_CMAKE_PREFIX_PATH+x}" ]; then
+  export CMAKE_PREFIX_PATH="$_ARGOS3_BACKUP_CMAKE_PREFIX_PATH"
+  unset _ARGOS3_BACKUP_CMAKE_PREFIX_PATH
+else
+  unset CMAKE_PREFIX_PATH
+fi
+if [ -n "${_ARGOS3_BACKUP_ARGoS_DIR+x}" ]; then
+  export ARGoS_DIR="$_ARGOS3_BACKUP_ARGoS_DIR"
+  unset _ARGOS3_BACKUP_ARGoS_DIR
+else
+  unset ARGoS_DIR
 fi
 EOF

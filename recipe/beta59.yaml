@@ -43,6 +43,9 @@ tests:
       - argos3 --version
       - test -d $PREFIX/include/argos3
       - test "$CMAKE_INSTALL_PREFIX" = "$PREFIX"
+      - test "${CMAKE_PREFIX_PATH%%:*}" = "$PREFIX"
+      - test "$ARGoS_DIR" = "$PREFIX/share/argos3/cmake"
+      - test -f "$ARGoS_DIR/ARGoSConfig.cmake"
 
 about:
   homepage: https://www.argos-sim.info
