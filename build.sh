@@ -98,6 +98,24 @@ grep -q 'pchDefaultPluginPath' "$SRC_DIR/src/core/utility/plugins/dynamic_loadin
   || { echo "ERROR: could not patch DEFAULT_PLUGIN_PATH in dynamic_loading.cpp"; exit 1; }
 echo "Patched DEFAULT_PLUGIN_PATH in dynamic_loading.cpp"
 
+# ── Make ARGoSConfig.cmake find the environment it is installed in ───────────
+# beta59 installs share/argos3/cmake/ARGoSConfig.cmake, which only looks under
+# ${CMAKE_INSTALL_PREFIX} (/usr/local by default), so find_package(ARGoS) in a
+# user project fails with 'Could not find ARGOS_INCLUDE_DIRS'. Derive the
+# prefix from the file's own location (<prefix>/share/argos3/cmake) instead,
+# and search it first so Lua and FreeImage also come from the same env.
+# (beta48 does not ship this file.)
+ARGOS_CONFIG="$SRC_DIR/src/cmake/ARGoSConfig.cmake"
+if [[ -f "$ARGOS_CONFIG" ]]; then
+  perl -i -pe 's|\$\{CMAKE_INSTALL_PREFIX\}|\${_ARGOS_PREFIX}|g' "$ARGOS_CONFIG"
+  perl -i -0pe \
+    's|^(#\n# Set the ARGOS_BUILD_FOR variable)|#\n# Locate the install prefix from this file (<prefix>/share/argos3/cmake)\n#\nget_filename_component(_ARGOS_PREFIX "\${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)\nset(CMAKE_PREFIX_PATH "\${_ARGOS_PREFIX}" \${CMAKE_PREFIX_PATH})\n\n$1|m' \
+    "$ARGOS_CONFIG"
+  grep -q 'get_filename_component(_ARGOS_PREFIX' "$ARGOS_CONFIG" \
+    || { echo "ERROR: could not patch prefix lookup in ARGoSConfig.cmake"; exit 1; }
+  echo "Patched prefix lookup in ARGoSConfig.cmake"
+fi
+
 # –– Resolve Lua library path (name differs across platforms) –––––––––––––––––
 if [[ "$(uname)" == "Darwin" ]]; then
     LUA_LIB="$(ls "$PREFIX"/lib/liblua*.dylib 2>/dev/null | head -1)"
@@ -176,3 +194,27 @@ cmake "$SRC_DIR/src" \
 
 make -j"${CPU_COUNT:-1}"
 make install
+
+# ── Activation scripts ────────────────────────────────────────────────────────
+# conda and pixi source etc/conda/activate.d/*.sh when the environment is
+# activated. Point CMAKE_INSTALL_PREFIX (read from the environment by
+# CMake >= 3.29) at the env, so ARGoSConfig.cmake and user projects resolve
+# ARGoS there instead of /usr/local. Any previous value is restored on
+# deactivation.
+mkdir -p "$PREFIX/etc/conda/activate.d" "$PREFIX/etc/conda/deactivate.d"
+
+cat > "$PREFIX/etc/conda/activate.d/argos3_activate.sh" << 'EOF'
+if [ -n "${CMAKE_INSTALL_PREFIX+x}" ]; then
+  export _ARGOS3_BACKUP_CMAKE_INSTALL_PREFIX="$CMAKE_INSTALL_PREFIX"
+fi
+export CMAKE_INSTALL_PREFIX="$CONDA_PREFIX"
+EOF
+
+cat > "$PREFIX/etc/conda/deactivate.d/argos3_deactivate.sh" << 'EOF'
+if [ -n "${_ARGOS3_BACKUP_CMAKE_INSTALL_PREFIX+x}" ]; then
+  export CMAKE_INSTALL_PREFIX="$_ARGOS3_BACKUP_CMAKE_INSTALL_PREFIX"
+  unset _ARGOS3_BACKUP_CMAKE_INSTALL_PREFIX
+else
+  unset CMAKE_INSTALL_PREFIX
+fi
+EOF
