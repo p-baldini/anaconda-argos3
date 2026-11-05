@@ -4,19 +4,37 @@ An Anaconda recipe to build and install the [ARGoS3 multi-robot simulator](https
 
 Anaconda link: [https://anaconda.org/channels/pbaldini/packages/argos3/overview](https://anaconda.org/channels/pbaldini/packages/argos3/overview)
 
+## Variants
+
+Each version is published in two _builds_:
+
+| Build     | Recipe               | Contents                                                                                                 |
+|-----------|----------------------|----------------------------------------------------------------------------------------------------------|
+| default   | `recipe/betaXX.yaml` | Simulator + Qt-OpenGL visualization (Qt6 for beta59, Qt5 for beta48)                                     |
+| headless  | `recipe/betaXX-headless.yaml` | Simulator only, no Qt dependency (e.g. for clusters/CI). Experiments must not use `<qt-opengl>` |
+
+The GUI build is preferred by the solver; ask for the headless one explicitly.
+
+The repository currently contains data to build the following _versions_ of the package:
+
+| Version | Label            |
+|---------|------------------|
+| beta 59 | `3.0.0.0.beta59` |
+| beta 48 | `3.0.0.0.beta48` |
+
 ## Installing from Anaconda repository
 
 From conda:
 
 ```bash
-conda install pbaldini::argos3[==3.0.0.0.beta48|==3.0.0.0.beta59]
+conda install pbaldini::argos3[==$VERSION[="headless*"]]
 ```
 
 From pixi:
 
 ```bash
 pixi workspace channel add https://conda.anaconda.org/pbaldini
-pixi add pbaldini::argos3[==3.0.0.0.beta48|==3.0.0.0.beta59]
+pixi add pbaldini::argos3[==$VERSION[="headless*"]]
 ```
 
 From sources (for debug purpose):
@@ -27,7 +45,7 @@ pixi install
 pixi shell
 
 # Launch the build tool (installed with pixi)
-pixi build-beta59 # or 48
+pixi run build-beta59 # or build-beta48, build-beta59-headless, build-beta48-headless, build-all
 
 # Install locally with pixi
 pixi add $(pwd)/output/osx-arm64/argos3-3.0.0.0.beta59-*.conda
