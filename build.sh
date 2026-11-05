@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
+# ── Variant ───────────────────────────────────────────────────────────────────
+# ARGOS_GUI=ON builds the Qt-OpenGL visualization (recipe/betaXX.yaml);
+# ARGOS_GUI=OFF builds a headless simulator (recipe/betaXX-headless.yaml).
+# The recipe sets it in build.script.env.
+ARGOS_GUI="${ARGOS_GUI:-OFF}"
+echo "ARGOS_GUI=$ARGOS_GUI"
+
 # ── Create LICENSE file ───────────────────────────────────────────────────────
 cat > "$SRC_DIR/LICENSE" << 'EOF'
 MIT License
@@ -175,11 +182,42 @@ if [[ -f "$SRC_DIR/src/cmake/FindLua52.cmake" ]]; then
   grep -n 'include_directories' "$SRC_DIR/src/CMakeLists.txt" | head -3
 fi
 
+# ── beta48: look for Qt in the conda env, not only in Homebrew ───────────────
+# On macOS, beta48's ARGoSCheckQTOpenGL.cmake runs `brew --cellar qt` and
+# checks for Qt only when Homebrew has it. That skips the conda-forge Qt in
+# $PREFIX, and on a runner with Homebrew Qt it would pick up the wrong Qt.
+# Drop the Homebrew probe and always use find_package(Qt5), which searches
+# CMAKE_PREFIX_PATH (= $PREFIX).
+QT_CHECK_48="$SRC_DIR/src/cmake/ARGoSCheckQTOpenGL.cmake"
+if [[ -f "$QT_CHECK_48" ]]; then
+  # Replace the conditions in both if() and endif() so CMake does not warn
+  # about mismatched arguments.
+  perl -i -pe 's|\(APPLE AND \(NOT ARGOS_BREW_QT_CELLAR\)\)|(FALSE)|g; s|\(\(NOT APPLE\) OR ARGOS_BREW_QT_CELLAR\)|(TRUE)|g' "$QT_CHECK_48"
+  grep -q '^if(FALSE)' "$QT_CHECK_48" && grep -q '^if(TRUE)' "$QT_CHECK_48" \
+    || { echo "ERROR: could not patch Homebrew Qt lookup in ARGoSCheckQTOpenGL.cmake"; exit 1; }
+  echo "Patched Homebrew Qt lookup in ARGoSCheckQTOpenGL.cmake"
+fi
+
+# ── GUI / headless CMake flags ────────────────────────────────────────────────
+# Headless: make sure no Qt is picked up even if one is lying around on the
+# build machine (ARGOS_FORCE_NO_QTOPENGL exists in beta59 only; disabling the
+# Qt find_package calls covers beta48 too).
+if [[ "$ARGOS_GUI" == "ON" ]]; then
+  QT_FLAGS=(-DARGOS_FORCE_NO_QTOPENGL=OFF)
+else
+  QT_FLAGS=(
+    -DARGOS_FORCE_NO_QTOPENGL=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Qt5=ON
+    -DCMAKE_DISABLE_FIND_PACKAGE_Qt6=ON
+  )
+fi
+
 # ── Configure ─────────────────────────────────────────────────────────────────
 mkdir -p build_simulator
 cd build_simulator
 
 cmake "$SRC_DIR/src" \
+    "${QT_FLAGS[@]}" \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DCMAKE_PREFIX_PATH="$PREFIX" \
@@ -194,6 +232,19 @@ cmake "$SRC_DIR/src" \
 
 make -j"${CPU_COUNT:-1}"
 make install
+
+# ── Make sure the variant is what it claims to be ────────────────────────────
+# ARGoS silently skips the Qt-OpenGL plugin when Qt/OpenGL/GLUT are missing,
+# so check the installed result instead of trusting the configure step.
+if ls "$PREFIX"/lib/argos3/libargos3plugin_simulator_qtopengl.* >/dev/null 2>&1; then
+  HAS_QTOPENGL=ON
+else
+  HAS_QTOPENGL=OFF
+fi
+if [[ "$HAS_QTOPENGL" != "$ARGOS_GUI" ]]; then
+  echo "ERROR: ARGOS_GUI=$ARGOS_GUI but Qt-OpenGL plugin installed=$HAS_QTOPENGL"
+  exit 1
+fi
 
 # ── Activation scripts ────────────────────────────────────────────────────────
 # conda and pixi source etc/conda/activate.d/*.sh when the environment is

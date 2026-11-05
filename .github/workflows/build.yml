@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false   # keep other platforms building even if one fails
       matrix:
-        version: [beta48, beta59]
+        version: [beta48, beta48-headless, beta59, beta59-headless]
         platform:
           # ── macOS Apple Silicon ───────────────────────────────────────────
           - runner: macos-15           # M-series GitHub runner (osx-arm64)

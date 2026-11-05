@@ -12,8 +12,14 @@ source:
   sha256: ${{ sha256 }}
 
 build:
-  number: 3
-  script: bash ${{ RECIPE_DIR }}/../build.sh
+  number: 4
+  # GUI build: includes the Qt-OpenGL visualization. The headless build of the
+  # same version is betaXX-headless.yaml (build string headless_*).
+  string: gui_h${{ hash }}_${{ build_number }}
+  script:
+    env:
+      ARGOS_GUI: "ON"
+    content: bash ${{ RECIPE_DIR }}/../build.sh
 
 requirements:
   build:
@@ -24,23 +30,30 @@ requirements:
   host:
     - freeimage
     - lua 5.5.*
+    - qt6-main
     - if: linux
       then:
         - freeglut
+        - libgl-devel
+        - libglu
         - xorg-libxi
         - xorg-libxmu
   run:
     - freeimage
     - lua 5.5.*
+    - qt6-main
     - if: linux
       then:
         - freeglut
+        - libgl-devel
+        - libglu
         - xorg-libxi
         - xorg-libxmu
 
 tests:
   - script:
       - argos3 --version
+      - ls $PREFIX/lib/argos3/libargos3plugin_simulator_qtopengl.*
       - test -d $PREFIX/include/argos3
       - test "$CMAKE_INSTALL_PREFIX" = "$PREFIX"
       - test "${CMAKE_PREFIX_PATH%%:*}" = "$PREFIX"
