@@ -3,6 +3,9 @@ name: Build and upload anaconda packages
 on:
   push:
     branches: [master]
+    paths:  # Only rebuild and upload when the package itself changes.
+      - "recipe/**"
+      - "build.sh"
   pull_request:
     branches: [master]   # build only, no upload on PRs
   workflow_dispatch:   # allow manual runs from the GitHub UI
