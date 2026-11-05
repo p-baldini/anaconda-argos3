@@ -12,7 +12,7 @@ source:
   sha256: ${{ sha256 }}
 
 build:
-  number: 1
+  number: 2
   # GUI build: includes the Qt-OpenGL visualization. The headless build of the
   # same version is betaXX-headless.yaml (build string headless_*).
   string: gui_h${{ hash }}_${{ build_number }}
@@ -30,7 +30,10 @@ requirements:
   host:
     - freeimage
     - lua 5.5.*
-    - qt6-main
+    # qt6-main >=6.11.2 needs macOS 14 (via moltenvk 1.4.2); building against
+    # 6.11.1 keeps the GUI installable on macOS 11+. The run export
+    # (>=6.11.1,<7) still lets newer Macs install a newer Qt 6.
+    - qt6-main <6.11.2
     - if: linux
       then:
         - freeglut
