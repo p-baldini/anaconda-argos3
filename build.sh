@@ -133,6 +133,27 @@ if [[ -f "$ARGOS_CONFIG" ]]; then
   grep -q 'get_filename_component(_ARGOS_PREFIX' "$ARGOS_CONFIG" \
     || { echo "ERROR: could not patch prefix lookup in ARGoSConfig.cmake"; exit 1; }
   echo "Patched prefix lookup in ARGoSConfig.cmake"
+
+  # find_package(Lua) uses CMake's FindLua, which understands Lua 5.5 only
+  # from CMake 4.3 on (lua.h now declares LUA_VERSION_MAJOR_N 5 instead of
+  # LUA_VERSION_MAJOR "5"). Older CMake, the norm on Linux, rejects the header
+  # and fails with 'Could NOT find Lua (missing: LUA_INCLUDE_DIR)'. lua is a
+  # run dependency of this package, so take it from the env directly and parse
+  # the version ourselves (both header styles).
+  export ARGOS_LUA_LOOKUP='  find_path(LUA_INCLUDE_DIR lua.h PATHS "${_ARGOS_PREFIX}/include" NO_DEFAULT_PATH)
+  find_library(LUA_LIBRARIES NAMES lua lua5.5 lua55 PATHS "${_ARGOS_PREFIX}/lib" NO_DEFAULT_PATH)
+  if(NOT LUA_INCLUDE_DIR OR NOT LUA_LIBRARIES)
+    message(FATAL_ERROR "Lua not found in ${_ARGOS_PREFIX}")
+  endif()
+  file(STRINGS "${LUA_INCLUDE_DIR}/lua.h" _ARGOS_LUA_VERSION_LINES
+       REGEX "^#define[ \t]+LUA_VERSION_(MAJOR|MINOR)(_N)?[ \t]+\"?[0-9]+\"?")
+  string(REGEX REPLACE ".*LUA_VERSION_MAJOR(_N)?[ \t]+\"?([0-9]+).*" "\\2" _ARGOS_LUA_MAJOR "${_ARGOS_LUA_VERSION_LINES}")
+  string(REGEX REPLACE ".*LUA_VERSION_MINOR(_N)?[ \t]+\"?([0-9]+).*" "\\2" _ARGOS_LUA_MINOR "${_ARGOS_LUA_VERSION_LINES}")
+  set(LUA_VERSION_STRING "${_ARGOS_LUA_MAJOR}.${_ARGOS_LUA_MINOR}")'
+  perl -i -pe 's|^\s*find_package\(Lua REQUIRED\)\s*$|$ENV{ARGOS_LUA_LOOKUP}\n|' "$ARGOS_CONFIG"
+  grep -q '_ARGOS_LUA_VERSION_LINES' "$ARGOS_CONFIG" \
+    || { echo "ERROR: could not patch Lua lookup in ARGoSConfig.cmake"; exit 1; }
+  echo "Patched Lua lookup in ARGoSConfig.cmake"
 fi
 
 # –– Resolve Lua library path (name differs across platforms) –––––––––––––––––

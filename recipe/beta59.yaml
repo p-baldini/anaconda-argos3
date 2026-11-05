@@ -12,7 +12,7 @@ source:
   sha256: ${{ sha256 }}
 
 build:
-  number: 3
+  number: 4
   # GUI build: includes the Qt-OpenGL visualization. The headless build of the
   # same version is betaXX-headless.yaml (build string headless_*).
   string: gui_h${{ hash }}_${{ build_number }}
