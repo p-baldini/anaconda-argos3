@@ -105,6 +105,18 @@ grep -q 'pchDefaultPluginPath' "$SRC_DIR/src/core/utility/plugins/dynamic_loadin
   || { echo "ERROR: could not patch DEFAULT_PLUGIN_PATH in dynamic_loading.cpp"; exit 1; }
 echo "Patched DEFAULT_PLUGIN_PATH in dynamic_loading.cpp"
 
+# CSimulator::GetInstallationDirectory() (inline, simulator.h) has the same
+# problem: it returns ARGOS_INSTALL_PREFIX, so the Qt-OpenGL plugin builds the
+# icon and texture dirs from a 255-char string with trailing NULs. Qt5 rejects
+# such paths ('Broken filename passed to function', no icons, null ground
+# texture); Qt6 happens to tolerate them. Same volatile-pointer fix.
+perl -i -pe \
+  's|^(\s*)return ARGOS_INSTALL_PREFIX;|$1const char* volatile pchInstallPrefix = ARGOS_INSTALL_PREFIX;\n$1return std::string(pchInstallPrefix);|' \
+  "$SRC_DIR/src/core/simulator/simulator.h"
+grep -q 'pchInstallPrefix' "$SRC_DIR/src/core/simulator/simulator.h" \
+  || { echo "ERROR: could not patch GetInstallationDirectory in simulator.h"; exit 1; }
+echo "Patched GetInstallationDirectory in simulator.h"
+
 # ── Make ARGoSConfig.cmake find the environment it is installed in ───────────
 # beta59 installs share/argos3/cmake/ARGoSConfig.cmake, which only looks under
 # ${CMAKE_INSTALL_PREFIX} (/usr/local by default), so find_package(ARGoS) in a

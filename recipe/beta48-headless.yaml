@@ -12,7 +12,7 @@ source:
   sha256: ${{ sha256 }}
 
 build:
-  number: 1
+  number: 2
   # Same version as the GUI build (betaXX.yaml); told apart by the build string.
   # down_prioritize_variant adds a track_feature so solvers prefer the GUI
   # build unless this one is asked for explicitly (argos3=<version>=headless*).
