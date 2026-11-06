@@ -12,7 +12,7 @@ source:
   sha256: ${{ sha256 }}
 
 build:
-  number: 3
+  number: 4
   # Same version as the GUI build (betaXX.yaml); told apart by the build string.
   # down_prioritize_variant adds a track_feature so solvers prefer the GUI
   # build unless this one is asked for explicitly (argos3=<version>=headless*).
@@ -27,6 +27,7 @@ build:
 requirements:
   build:
     - ${{ compiler("cxx") }}
+    - ${{ stdlib("c") }}
     - cmake >=3.8.0
     - make
     - pkg-config
