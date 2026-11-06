@@ -1,0 +1,88 @@
+name: Upload anaconda packages
+
+# Uploads every package built by a build.yml run to Anaconda.org.
+#
+# Called by build.yml once all builds and tests have passed (pushes to master
+# and manual runs, never PRs). Can also be run by hand to upload the artifacts
+# of an earlier build run without rebuilding (artifacts are kept 7 days).
+#
+# No workflow-level concurrency here: when called from build.yml it would
+# share (and cancel) the caller's concurrency group.
+
+on:
+  workflow_call:
+    secrets:
+      ANACONDA_OWNER:
+        required: true
+      ANACONDA_API_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      run-id:
+        description: "ID of the 'Build anaconda packages' run whose artifacts to upload"
+        required: true
+
+jobs:
+  upload:
+    name: Upload to Anaconda.org
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read    # download artifacts of another run (workflow_dispatch)
+
+    steps:
+      - name: Checkout feedstock
+        uses: actions/checkout@v4
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          pixi-version: latest
+          cache: true
+
+      # Download every platform artifact into output/ so rattler-build
+      # upload can find them all in one shot
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: argos3-*
+          path: output/
+          merge-multiple: true   # flatten into output/ directly
+          run-id: ${{ inputs.run-id || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Check required secrets are set
+        run: |
+          missing=0
+          if [ -z "$ANACONDA_OWNER" ]; then
+            echo "::error::Secret ANACONDA_OWNER is not set"
+            missing=1
+          fi
+          if [ -z "$ANACONDA_API_KEY" ]; then
+            echo "::error::Secret ANACONDA_API_KEY is not set"
+            missing=1
+          fi
+          [ "$missing" -eq 0 ] || exit 1
+          echo "Uploading as owner: $ANACONDA_OWNER"
+        env:
+          ANACONDA_OWNER: ${{ secrets.ANACONDA_OWNER }}
+          ANACONDA_API_KEY: ${{ secrets.ANACONDA_API_KEY }}
+
+      - name: List packages to upload
+        run: find output/ -name "*.conda" | sort
+
+      - name: Upload all packages to Anaconda.org
+        run: |
+          mapfile -t pkgs < <(find output/ -name "*.conda" | sort)
+          if [ "${#pkgs[@]}" -eq 0 ]; then
+            echo "::error::No packages found in output/"
+            exit 1
+          fi
+          pixi run rattler-build upload anaconda "${pkgs[@]}"
+        env:
+          # rattler-build reads all of these straight from the environment,
+          # so no CLI flags are needed (and none can end up empty).
+          ANACONDA_OWNER:   ${{ secrets.ANACONDA_OWNER }}
+          ANACONDA_API_KEY: ${{ secrets.ANACONDA_API_KEY }}
+          ANACONDA_CHANNEL: main
+          ANACONDA_FORCE:   "true"

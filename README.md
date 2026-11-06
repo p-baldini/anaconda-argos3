@@ -57,3 +57,6 @@ conda install --use-local argos3
 ## For contributors
 
 Whenever you work on a change in the following repository, keep in mind that a push to master will trigger a GitHub action that compiles and uploads the package to Anaconda.
+
+Before the upload, every package is tested on each platform (`.github/workflows/test.yml`): it is installed in a fresh environment, the `footbot_diffusion` controller of [argos3-examples](https://github.com/ilpincy/argos3-examples) is built against it, and `diffusion_1.argos` is run without visualization.
+The upload only happens if all tests pass.

@@ -1,0 +1,68 @@
+name: Test anaconda packages
+
+# Installs each built package in a fresh environment, builds the
+# footbot_diffusion controller from argos3-examples against it and runs the
+# diffusion_1 experiment (see test-diffusion.sh).
+#
+# Called by build.yml after the builds, before the upload. Can also be run by
+# hand on the artifacts of an earlier build run.
+#
+# No workflow-level concurrency here: when called from build.yml it would
+# share (and cancel) the caller's concurrency group.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      run-id:
+        description: "ID of the 'Build anaconda packages' run whose artifacts to test"
+        required: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.version }} · ${{ matrix.platform.runner }})
+    runs-on: ${{ matrix.platform.runner }}
+    permissions:
+      contents: read
+      actions: read    # download artifacts of another run (workflow_dispatch)
+
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [beta48, beta48-headless, beta59, beta59-headless]
+        platform:
+          # Same runners as build.yml
+          - runner: macos-15           # Apple Silicon (osx-arm64)
+            target: osx-arm64
+          - runner: macos-15-intel     # Intel (osx-64)
+            target: osx-64
+          - runner: ubuntu-24.04       # Linux x86-64
+            target: linux-64
+
+    steps:
+      - name: Checkout feedstock
+        uses: actions/checkout@v4
+
+      # Only the pixi binary is needed: the test builds its own environment.
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+        with:
+          pixi-version: latest
+          run-install: false
+
+      - name: Download package
+        uses: actions/download-artifact@v4
+        with:
+          name: argos3-${{ matrix.version }}-${{ matrix.platform.target }}
+          path: pkg/
+          run-id: ${{ inputs.run-id || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Run diffusion example
+        run: |
+          pkgs=(pkg/argos3-*.conda)
+          if [ "${#pkgs[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one package in pkg/, found: ${pkgs[*]}"
+            exit 1
+          fi
+          ./test-diffusion.sh "${pkgs[0]}"
