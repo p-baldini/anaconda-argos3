@@ -54,6 +54,13 @@ pixi add $(pwd)/output/osx-arm64/argos3-3.0.0.0.beta59-*.conda
 conda install --use-local argos3
 ```
 
+## Troubleshooting
+
+**The visualization does not start on Linux / WSL** (`QOpenGLWidget: Failed to create context`):
+
+- The GUI needs a system OpenGL driver (e.g. Mesa). Check it **outside** the environment with `glxinfo -B` (package `mesa-utils` on Debian/Ubuntu); it should print a renderer instead of an error.
+- On WSL the GUI build uses X11 (XWayland) by default, because Qt's Wayland backend often has no EGL there. Setting `QT_QPA_PLATFORM` explicitly (e.g. `QT_QPA_PLATFORM=wayland argos3 -c ...`) overrides this default.
+
 ## For contributors
 
 Whenever you work on a change in the following repository, keep in mind that a push to master will trigger a GitHub action that compiles and uploads the package to Anaconda.
