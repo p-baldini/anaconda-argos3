@@ -1,0 +1,43 @@
+From: Paolo Baldini <p.baldini@unibo.it>
+Subject: [PATCH] qt-opengl: default to xcb and the Mesa GLX vendor on WSL
+
+On WSLg, WAYLAND_DISPLAY is set, so Qt 6 picks its Wayland platform plugin,
+but EGL is often unavailable there ("qt.qpa.wayland: EGL not available",
+"QOpenGLWidget: Failed to create context"). With xcb (XWayland) instead,
+libglvnd cannot detect the GLX vendor of the X server and falls back to
+libGLX_indirect, which is not installed ("Could not initialize GLX", abort).
+
+When running on WSL (WSL_DISTRO_NAME set), default QT_QPA_PLATFORM to xcb
+and __GLX_VENDOR_LIBRARY_NAME to mesa (the only GLX vendor on WSL), unless
+the user set them explicitly. Nothing changes outside WSL.
+
+--- a/src/plugins/simulator/visualizations/qt-opengl/qtopengl_render.cpp
++++ b/src/plugins/simulator/visualizations/qt-opengl/qtopengl_render.cpp
+@@ -13,6 +13,7 @@
+ 
+ #include <QPixmap>
+ #include <QSplashScreen>
++#include <QtGlobal>
+ 
+ namespace argos {
+ 
+@@ -31,6 +32,19 @@
+       m_ppcOptions = new char*[m_nOptionNum];
+       m_ppcOptions[0] = new char[7];
+       ::strcpy(m_ppcOptions[0], "argos3");
++      /*
++       * On WSLg: Qt 6 picks Wayland, where EGL is often unavailable, and libglvnd
++       * can't detect the GLX vendor through Xwayland. Mesa is always the vendor on
++       * WSL, so set safe defaults. Explicit user settings are respected.
++       */
++      if(qEnvironmentVariableIsSet("WSL_DISTRO_NAME")) {
++         if(qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
++            qputenv("QT_QPA_PLATFORM", "xcb");
++         }
++         if(qEnvironmentVariableIsEmpty("__GLX_VENDOR_LIBRARY_NAME")) {
++            qputenv("__GLX_VENDOR_LIBRARY_NAME", "mesa");
++         }
++      }
+       /* Create the QT application */
+       m_pcApplication = new CQTOpenGLApplication(m_nOptionNum, m_ppcOptions);
+       /* Set some data about the application */

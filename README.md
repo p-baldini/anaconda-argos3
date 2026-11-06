@@ -59,7 +59,7 @@ conda install --use-local argos3
 **The visualization does not start on Linux / WSL** (`QOpenGLWidget: Failed to create context`):
 
 - The GUI needs a system OpenGL driver (e.g. Mesa). Check it **outside** the environment with `glxinfo -B` (package `mesa-utils` on Debian/Ubuntu); it should print a renderer instead of an error.
-- On WSL the GUI build uses X11 (XWayland) by default, because Qt's Wayland backend often has no EGL there. Setting `QT_QPA_PLATFORM` explicitly (e.g. `QT_QPA_PLATFORM=wayland argos3 -c ...`) overrides this default.
+- On WSL the GUI build defaults to X11 (XWayland) with the Mesa GLX driver (`QT_QPA_PLATFORM=xcb`, `__GLX_VENDOR_LIBRARY_NAME=mesa`), because Qt's Wayland backend often has no EGL there and the GLX vendor cannot be detected through XWayland. Setting either variable explicitly (e.g. `QT_QPA_PLATFORM=wayland argos3 -c ...`) overrides that default. Outside WSL nothing is changed.
 
 ## For contributors
 
