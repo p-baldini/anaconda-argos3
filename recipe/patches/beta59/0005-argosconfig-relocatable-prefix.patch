@@ -1,0 +1,57 @@
+Subject: [PATCH] ARGoSConfig.cmake: find the environment it is installed in
+
+ARGoSConfig.cmake (installed to <prefix>/share/argos3/cmake) only looks under
+${CMAKE_INSTALL_PREFIX}, which is /usr/local by default, so find_package(ARGoS)
+in a user project fails with 'Could not find ARGOS_INCLUDE_DIRS'. Derive the
+prefix from the file's own location instead, and search it first so Lua and
+FreeImage also come from the same environment.
+
+diff --git a/src/cmake/ARGoSConfig.cmake b/src/cmake/ARGoSConfig.cmake
+index 64cfae2..f526cac 100644
+--- a/src/cmake/ARGoSConfig.cmake
++++ b/src/cmake/ARGoSConfig.cmake
+@@ -26,6 +26,12 @@
+ #
+ # AUTHOR: Carlo Pinciroli <ilpincy@gmail.com>
+ 
++#
++# Locate the install prefix from this file (<prefix>/share/argos3/cmake)
++#
++get_filename_component(_ARGOS_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
++set(CMAKE_PREFIX_PATH "${_ARGOS_PREFIX}" ${CMAKE_PREFIX_PATH})
++
+ #
+ # Set the ARGOS_BUILD_FOR variable
+ #
+@@ -47,11 +53,11 @@ endif(${ARGoS_FIND_REQUIRED})
+ #
+ set(_lib "argos3core_${ARGOS_BUILD_FOR}")
+ find_path(ARGOS_INCLUDE_DIRS argos3/core/config.h
+-  HINTS ${CMAKE_INSTALL_PREFIX}/include
++  HINTS ${_ARGOS_PREFIX}/include
+   DOC "Path of the headers needed for ARGoS"
+   ${_required})
+ find_library(ARGOS_LIBRARY ${_lib}
+-  HINTS ${CMAKE_INSTALL_PREFIX}/lib
++  HINTS ${_ARGOS_PREFIX}/lib
+   PATH_SUFFIXES argos3
+   ${_required})
+ if(ARGOS_INCLUDE_DIRS AND ARGOS_LIBRARY)
+@@ -78,7 +84,7 @@ if(ARGOS_FOUND AND (NOT ARGoS_FIND_COMPONENTS STREQUAL ""))
+     set(_lib "argos3plugin_${ARGOS_BUILD_FOR}_${_plugin}")
+     unset(_required)
+     find_library(ARGOS_${_PLUGIN}_LIBRARY ${_lib}
+-      HINTS ${CMAKE_INSTALL_PREFIX}/lib
++      HINTS ${_ARGOS_PREFIX}/lib
+       PATH_SUFFIXES argos3
+       DOC "Path of the ARGoS ${_plugin} plugin library"
+       ${_required})
+@@ -102,7 +108,7 @@ endif(ARGOS_FOUND AND (NOT ARGoS_FIND_COMPONENTS STREQUAL ""))
+ #
+ find_path(ARGOS_CMAKE_DIR FindARGoSQTOpenGL.cmake
+   PATHS /usr/share/argos3/cmake /usr/local/share/argos3/cmake /opt/share/argos3/cmake /opt/local/share/argos3/cmake
+-  HINTS ${CMAKE_INSTALL_PREFIX}/share/argos3/cmake
++  HINTS ${_ARGOS_PREFIX}/share/argos3/cmake
+   DOC "Path of the ARGoS CMake modules"
+   ${_required})
+ list(APPEND CMAKE_MODULE_PATH "${ARGOS_CMAKE_DIR}")

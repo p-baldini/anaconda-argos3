@@ -10,6 +10,12 @@ package:
 source:
   url: https://github.com/ilpincy/argos3/archive/${{ version_tag }}.tar.gz
   sha256: ${{ sha256 }}
+  patches:
+    - patches/0002-use-std-unordered-map.patch
+    - patches/0003-read-install-prefix-at-runtime.patch
+    - patches/beta59/0004-add-missing-std-includes.patch
+    - patches/beta59/0005-argosconfig-relocatable-prefix.patch
+    - patches/beta59/0006-argosconfig-lua-from-env.patch
 
 build:
   number: 4

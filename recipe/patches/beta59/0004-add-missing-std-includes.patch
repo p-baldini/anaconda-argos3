@@ -1,0 +1,263 @@
+Subject: [PATCH] Add missing C++ standard library includes
+
+ARGoS3 was written against older compilers that pulled these headers in
+transitively. GCC 11+ and Clang 13+ (libc++) require them explicitly:
+  <algorithm>   std::sort, std::find, std::remove_if, std::min_element
+  <functional>  std::less<T*>, std::bind, std::function
+  <iterator>    std::back_inserter
+  <memory>      std::shared_ptr, std::make_shared, std::unique_ptr
+  <cstdint>     uint8_t, uint32_t, int32_t
+
+diff --git a/src/core/control_interface/ci_actuator.h b/src/core/control_interface/ci_actuator.h
+index 1f96c17..2eabb19 100644
+--- a/src/core/control_interface/ci_actuator.h
++++ b/src/core/control_interface/ci_actuator.h
+@@ -13,6 +13,7 @@ namespace argos {
+    class CCI_Actuator;
+ }
+ 
++#include <functional>
+ #include <argos3/core/config.h>
+ #include <argos3/core/utility/datatypes/datatypes.h>
+ #include <argos3/core/utility/configuration/base_configurable_resource.h>
+diff --git a/src/core/control_interface/ci_sensor.h b/src/core/control_interface/ci_sensor.h
+index c956504..28e9212 100644
+--- a/src/core/control_interface/ci_sensor.h
++++ b/src/core/control_interface/ci_sensor.h
+@@ -13,6 +13,7 @@ namespace argos {
+    class CCI_Sensor;
+ }
+ 
++#include <functional>
+ #include <argos3/core/config.h>
+ #include <argos3/core/utility/datatypes/datatypes.h>
+ #include <argos3/core/utility/configuration/base_configurable_resource.h>
+diff --git a/src/core/simulator/entity/embodied_entity.cpp b/src/core/simulator/entity/embodied_entity.cpp
+index 9be29c0..8e814d7 100644
+--- a/src/core/simulator/entity/embodied_entity.cpp
++++ b/src/core/simulator/entity/embodied_entity.cpp
+@@ -4,6 +4,7 @@
+  *
+  * @author Carlo Pinciroli <ilpincy@gmail.com>
+  */
++#include <algorithm>
+ #include "embodied_entity.h"
+ #include "composable_entity.h"
+ #include <argos3/core/simulator/space/space.h>
+diff --git a/src/core/simulator/physics_engine/physics_engine.h b/src/core/simulator/physics_engine/physics_engine.h
+index 46cd2d1..92860b3 100644
+--- a/src/core/simulator/physics_engine/physics_engine.h
++++ b/src/core/simulator/physics_engine/physics_engine.h
+@@ -16,6 +16,7 @@ namespace argos {
+    class CRay3;
+ }
+ 
++#include <functional>
+ #include <map>
+ #include <argos3/core/utility/logging/argos_log.h>
+ #include <argos3/core/utility/math/ray2.h>
+diff --git a/src/core/utility/datatypes/set.h b/src/core/utility/datatypes/set.h
+index 8723b42..1f22684 100644
+--- a/src/core/utility/datatypes/set.h
++++ b/src/core/utility/datatypes/set.h
+@@ -7,6 +7,7 @@
+ #ifndef SET_H
+ #define SET_H
+ 
++#include <functional>
+ #include <cstddef>
+ #include <iterator>
+ 
+diff --git a/src/core/utility/math/convex_hull.cpp b/src/core/utility/math/convex_hull.cpp
+index 81c695d..ab6858d 100644
+--- a/src/core/utility/math/convex_hull.cpp
++++ b/src/core/utility/math/convex_hull.cpp
+@@ -4,6 +4,7 @@
+  * @author Weixu Zhu <zhuweixu_harry@126.com>
+  */
+ 
++#include <iterator>
+ #include "convex_hull.h"
+ 
+ #include <algorithm>
+diff --git a/src/plugins/robots/e-puck/simulator/dynamics3d_epuck_model.cpp b/src/plugins/robots/e-puck/simulator/dynamics3d_epuck_model.cpp
+index 16e02ec..2282ddf 100644
+--- a/src/plugins/robots/e-puck/simulator/dynamics3d_epuck_model.cpp
++++ b/src/plugins/robots/e-puck/simulator/dynamics3d_epuck_model.cpp
+@@ -4,6 +4,7 @@
+  * @author Michael Allwright - <allsey87@gmail.com>
+  */
+ 
++#include <memory>
+ #include "dynamics3d_epuck_model.h"
+ 
+ #include <argos3/plugins/simulator/physics_engines/dynamics3d/dynamics3d_engine.h>
+diff --git a/src/plugins/robots/generic/simulator/camera_sensor_algorithms/camera_sensor_tag_detector_algorithm.h b/src/plugins/robots/generic/simulator/camera_sensor_algorithms/camera_sensor_tag_detector_algorithm.h
+index 7eb97b3..98800c8 100644
+--- a/src/plugins/robots/generic/simulator/camera_sensor_algorithms/camera_sensor_tag_detector_algorithm.h
++++ b/src/plugins/robots/generic/simulator/camera_sensor_algorithms/camera_sensor_tag_detector_algorithm.h
+@@ -11,6 +11,7 @@ namespace argos {
+ 	class CCameraSensorTagDetectorAlgorithm;
+ }
+ 
++#include <algorithm>
+ #include <argos3/core/simulator/entity/embodied_entity.h>
+ #include <argos3/core/simulator/space/positional_indices/positional_index.h>
+ #include <argos3/core/utility/math/ray3.h>
+diff --git a/src/plugins/robots/prototype/simulator/dynamics3d_prototype_model.cpp b/src/plugins/robots/prototype/simulator/dynamics3d_prototype_model.cpp
+index 29d53fa..a99f6d6 100644
+--- a/src/plugins/robots/prototype/simulator/dynamics3d_prototype_model.cpp
++++ b/src/plugins/robots/prototype/simulator/dynamics3d_prototype_model.cpp
+@@ -5,6 +5,8 @@
+  * @author Weixu Zhu- <zhuweixu_harry@126.com>
+  */
+ 
++#include <functional>
++#include <memory>
+ #include "dynamics3d_prototype_model.h"
+ #include <argos3/plugins/robots/prototype/simulator/prototype_entity.h>
+ #include <argos3/plugins/robots/prototype/simulator/prototype_joint_equipped_entity.h>
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/bullet/BulletCollision/CollisionDispatch/btSimulationIslandManager.cpp b/src/plugins/simulator/physics_engines/dynamics3d/bullet/BulletCollision/CollisionDispatch/btSimulationIslandManager.cpp
+index f0324d6..8966532 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/bullet/BulletCollision/CollisionDispatch/btSimulationIslandManager.cpp
++++ b/src/plugins/simulator/physics_engines/dynamics3d/bullet/BulletCollision/CollisionDispatch/btSimulationIslandManager.cpp
+@@ -14,6 +14,7 @@ subject to the following restrictions:
+ 3. This notice may not be removed or altered from any source distribution.
+ */
+ 
++#include <algorithm>
+ #include <argos3/plugins/simulator/physics_engines/dynamics3d/bullet/LinearMath/btScalar.h>
+ #include "btSimulationIslandManager.h"
+ #include <argos3/plugins/simulator/physics_engines/dynamics3d/bullet/BulletCollision/BroadphaseCollision/btDispatcher.h>
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/bullet/BulletCollision/CollisionDispatch/btUnionFind.cpp b/src/plugins/simulator/physics_engines/dynamics3d/bullet/BulletCollision/CollisionDispatch/btUnionFind.cpp
+index 816bf1e..6b6d444 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/bullet/BulletCollision/CollisionDispatch/btUnionFind.cpp
++++ b/src/plugins/simulator/physics_engines/dynamics3d/bullet/BulletCollision/CollisionDispatch/btUnionFind.cpp
+@@ -13,6 +13,7 @@ subject to the following restrictions:
+ 3. This notice may not be removed or altered from any source distribution.
+ */
+ 
++#include <algorithm>
+ #include "btUnionFind.h"
+ 
+ btUnionFind::~btUnionFind()
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/bullet/LinearMath/btCpuFeatureUtility.h b/src/plugins/simulator/physics_engines/dynamics3d/bullet/LinearMath/btCpuFeatureUtility.h
+index cc12684..cb18aa5 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/bullet/LinearMath/btCpuFeatureUtility.h
++++ b/src/plugins/simulator/physics_engines/dynamics3d/bullet/LinearMath/btCpuFeatureUtility.h
+@@ -2,6 +2,7 @@
+ #ifndef BT_CPU_UTILITY_H
+ #define BT_CPU_UTILITY_H
+ 
++#include <cstdint>
+ #include <argos3/plugins/simulator/physics_engines/dynamics3d/bullet/LinearMath/btScalar.h>
+ 
+ #include <string.h>  //memset
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/bullet/LinearMath/btMatrix3x3.h b/src/plugins/simulator/physics_engines/dynamics3d/bullet/LinearMath/btMatrix3x3.h
+index 9c90fee..c1a1f31 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/bullet/LinearMath/btMatrix3x3.h
++++ b/src/plugins/simulator/physics_engines/dynamics3d/bullet/LinearMath/btMatrix3x3.h
+@@ -15,6 +15,7 @@ subject to the following restrictions:
+ #ifndef BT_MATRIX3x3_H
+ #define BT_MATRIX3x3_H
+ 
++#include <cstdint>
+ #include "btVector3.h"
+ #include "btQuaternion.h"
+ #include <stdio.h>
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_box_model.cpp b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_box_model.cpp
+index e5cc972..c2f52c4 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_box_model.cpp
++++ b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_box_model.cpp
+@@ -4,6 +4,7 @@
+  * @author Michael Allwright - <allsey87@gmail.com>
+  */
+ 
++#include <memory>
+ #include "dynamics3d_box_model.h"
+ 
+ #include <argos3/plugins/simulator/entities/box_entity.h>
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_cylinder_model.cpp b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_cylinder_model.cpp
+index 8799f12..92a9117 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_cylinder_model.cpp
++++ b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_cylinder_model.cpp
+@@ -4,6 +4,7 @@
+  * @author Michael Allwright - <allsey87@gmail.com>
+  */
+ 
++#include <memory>
+ #include "dynamics3d_cylinder_model.h"
+ 
+ #include <argos3/plugins/simulator/entities/cylinder_entity.h>
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_gravity_plugin.cpp b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_gravity_plugin.cpp
+index 841a8b0..864de9a 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_gravity_plugin.cpp
++++ b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_gravity_plugin.cpp
+@@ -4,6 +4,7 @@
+  * @author Michael Allwright - <allsey87@gmail.com>
+  */
+ 
++#include <memory>
+ #include "dynamics3d_gravity_plugin.h"
+ 
+ #include <argos3/plugins/simulator/physics_engines/dynamics3d/dynamics3d_model.h>
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_model.cpp b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_model.cpp
+index 389a6dd..9284f00 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_model.cpp
++++ b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_model.cpp
+@@ -4,6 +4,7 @@
+  * @author Michael Allwright - <allsey87@gmail.com>
+  */
+ 
++#include <memory>
+ #include "dynamics3d_model.h"
+ 
+ #include <argos3/core/simulator/physics_engine/physics_model.h>
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_model.h b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_model.h
+index d62c25d..9ae6aba 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_model.h
++++ b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_model.h
+@@ -11,6 +11,7 @@ namespace argos {
+    class  CDynamics3DEngine;
+ }
+ 
++#include <memory>
+ #include <argos3/core/simulator/physics_engine/physics_model.h>
+ #include <argos3/core/simulator/entity/composable_entity.h>
+ #include <argos3/core/utility/math/vector3.h>
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_multi_body_object_model.cpp b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_multi_body_object_model.cpp
+index 4ef126f..2bd187a 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_multi_body_object_model.cpp
++++ b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_multi_body_object_model.cpp
+@@ -4,6 +4,7 @@
+  * @author Michael Allwright - <allsey87@gmail.com>
+  */
+ 
++#include <memory>
+ #include "dynamics3d_multi_body_object_model.h"
+ 
+ #include <argos3/core/simulator/entity/composable_entity.h>
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_shape_manager.cpp b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_shape_manager.cpp
+index 411841c..4569557 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_shape_manager.cpp
++++ b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_shape_manager.cpp
+@@ -5,6 +5,7 @@
+  * @author Weixu Zhu- <zhuweixu_harry@126.com>
+  */
+ 
++#include <memory>
+ #include "dynamics3d_shape_manager.h"
+ #include <argos3/core/utility/configuration/argos_exception.h>
+ 
+diff --git a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_single_body_object_model.cpp b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_single_body_object_model.cpp
+index 813fba8..b279d66 100644
+--- a/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_single_body_object_model.cpp
++++ b/src/plugins/simulator/physics_engines/dynamics3d/dynamics3d_single_body_object_model.cpp
+@@ -4,6 +4,7 @@
+  * @author Michael Allwright - <allsey87@gmail.com>
+  */
+ 
++#include <memory>
+ #include "dynamics3d_single_body_object_model.h"
+ 
+ namespace argos {

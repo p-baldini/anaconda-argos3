@@ -1,0 +1,46 @@
+Subject: [PATCH] cmake: do not wipe the flags conda needs
+
+ARGoSBuildFlags.cmake uses plain set()s that discard what the environment
+passes in (beta59 fixed this upstream by appending):
+
+- set(CMAKE_C_FLAGS "-Wall") / set(CMAKE_CXX_FLAGS "-Wall") drop $CFLAGS and
+  $CXXFLAGS. Re-add the env's include dir and, on Linux, -fno-merge-constants
+  (see build.sh for why string literals must not be merged).
+- On Linux, set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-as-needed") drops
+  -L$PREFIX/lib from $LDFLAGS, so the linker cannot find freeimage,
+  freeimageplus and lua. Append instead.
+
+diff --git a/src/cmake/ARGoSBuildFlags.cmake b/src/cmake/ARGoSBuildFlags.cmake
+index e55cff6..39254cb 100644
+--- a/src/cmake/ARGoSBuildFlags.cmake
++++ b/src/cmake/ARGoSBuildFlags.cmake
+@@ -9,14 +9,18 @@ execute_process(
+ #
+ # General compilation flags
+ #
+-set(CMAKE_C_FLAGS                  "-Wall")
++# conda: the plain set() drops $CFLAGS/$CXXFLAGS; re-add what the build needs
++if(NOT APPLE)
++  set(_ARGOS_CONDA_FLAGS "-fno-merge-constants")
++endif(NOT APPLE)
++set(CMAKE_C_FLAGS                  "-Wall ${_ARGOS_CONDA_FLAGS}")
+ if(ARGOS_BUILD_NATIVE)
+   set(CMAKE_C_FLAGS                "${CMAKE_C_FLAGS} -mtune=native -march=native")
+ endif(ARGOS_BUILD_NATIVE)
+ set(CMAKE_C_FLAGS_RELEASE          "-Os -DNDEBUG")
+ set(CMAKE_C_FLAGS_DEBUG            "-ggdb3")
+ set(CMAKE_C_FLAGS_RELWITHDEBINFO   "${CMAKE_C_FLAGS_DEBUG} ${CMAKE_C_FLAGS_RELEASE}")
+-set(CMAKE_CXX_FLAGS                "-Wall")
++set(CMAKE_CXX_FLAGS                "-Wall -I$ENV{PREFIX}/include ${_ARGOS_CONDA_FLAGS}")
+ if(ARGOS_BUILD_NATIVE)
+   set(CMAKE_CXX_FLAGS              "${CMAKE_CXX_FLAGS} -mtune=native -march=native")
+ endif(ARGOS_BUILD_NATIVE)
+@@ -55,7 +59,7 @@ else(APPLE)
+   #set(ARGOS_PC_CFLAGS -malign-double)
+   add_definitions(${ARGOS_PC_CFLAGS})
+   # Avoid discarding unused symbols to allow plugins to work
+-  set(CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-as-needed")
++  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-as-needed")
+   set(ARGOS_SHARED_LIBRARY_EXTENSION "so")
+   set(ARGOS_MODULE_LIBRARY_EXTENSION "so")
+   set(ARGOS_DYNAMIC_LIBRARY_VARIABLE "LD_LIBRARY_PATH")

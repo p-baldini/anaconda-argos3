@@ -11,7 +11,13 @@ source:
   url: https://github.com/ilpincy/argos3/archive/${{ version_tag }}.tar.gz
   sha256: ${{ sha256 }}
   patches:
-    - 0001-wsl-qt-glx-defaults.patch
+    - patches/0001-wsl-qt-glx-defaults.patch  # GUI only
+    - patches/0002-use-std-unordered-map.patch
+    - patches/0003-read-install-prefix-at-runtime.patch
+    - patches/beta48/0004-add-missing-std-includes.patch
+    - patches/beta48/0005-cmake-keep-conda-flags.patch
+    - patches/beta48/0006-cmake-lua-from-env.patch
+    - patches/beta48/0007-cmake-qt-from-env.patch
 
 build:
   number: 6

@@ -1,0 +1,70 @@
+Subject: [PATCH] Add missing C++ standard library includes
+
+ARGoS3 was written against older compilers that pulled these headers in
+transitively. GCC 11+ and Clang 13+ (libc++) require them explicitly:
+  <algorithm>   std::sort, std::find, std::remove_if, std::min_element
+  <functional>  std::less<T*>, std::bind, std::function
+  <iterator>    std::back_inserter
+  <memory>      std::shared_ptr, std::make_shared, std::unique_ptr
+  <cstdint>     uint8_t, uint32_t, int32_t
+
+diff --git a/src/core/control_interface/ci_actuator.h b/src/core/control_interface/ci_actuator.h
+index 1f96c17..2eabb19 100644
+--- a/src/core/control_interface/ci_actuator.h
++++ b/src/core/control_interface/ci_actuator.h
+@@ -13,6 +13,7 @@ namespace argos {
+    class CCI_Actuator;
+ }
+ 
++#include <functional>
+ #include <argos3/core/config.h>
+ #include <argos3/core/utility/datatypes/datatypes.h>
+ #include <argos3/core/utility/configuration/base_configurable_resource.h>
+diff --git a/src/core/control_interface/ci_sensor.h b/src/core/control_interface/ci_sensor.h
+index 03b1d5a..d707744 100644
+--- a/src/core/control_interface/ci_sensor.h
++++ b/src/core/control_interface/ci_sensor.h
+@@ -13,6 +13,7 @@ namespace argos {
+    class CCI_Sensor;
+ }
+ 
++#include <functional>
+ #include <argos3/core/config.h>
+ #include <argos3/core/utility/datatypes/datatypes.h>
+ #include <argos3/core/utility/configuration/base_configurable_resource.h>
+diff --git a/src/core/simulator/entity/embodied_entity.cpp b/src/core/simulator/entity/embodied_entity.cpp
+index c12f1a0..42817d1 100644
+--- a/src/core/simulator/entity/embodied_entity.cpp
++++ b/src/core/simulator/entity/embodied_entity.cpp
+@@ -4,6 +4,7 @@
+  *
+  * @author Carlo Pinciroli <ilpincy@gmail.com>
+  */
++#include <algorithm>
+ #include "embodied_entity.h"
+ #include "composable_entity.h"
+ #include <argos3/core/simulator/space/space.h>
+diff --git a/src/core/simulator/physics_engine/physics_engine.h b/src/core/simulator/physics_engine/physics_engine.h
+index c90efc6..c15243f 100644
+--- a/src/core/simulator/physics_engine/physics_engine.h
++++ b/src/core/simulator/physics_engine/physics_engine.h
+@@ -16,6 +16,7 @@ namespace argos {
+    class CRay3;
+ }
+ 
++#include <functional>
+ #include <map>
+ #include <argos3/core/utility/logging/argos_log.h>
+ #include <argos3/core/utility/math/ray2.h>
+diff --git a/src/core/utility/datatypes/set.h b/src/core/utility/datatypes/set.h
+index d0e20fd..2e03660 100644
+--- a/src/core/utility/datatypes/set.h
++++ b/src/core/utility/datatypes/set.h
+@@ -7,6 +7,7 @@
+ #ifndef SET_H
+ #define SET_H
+ 
++#include <functional>
+ #include <cstddef>
+ #include <iterator>
+ 

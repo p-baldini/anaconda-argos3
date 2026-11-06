@@ -1,0 +1,26 @@
+Subject: [PATCH] cmake: take Lua from the conda environment
+
+find_package(Lua52) only searches for Lua 5.2. Look up the Lua the package is
+built against directly in $PREFIX instead.
+
+diff --git a/src/cmake/ARGoSBuildChecks.cmake b/src/cmake/ARGoSBuildChecks.cmake
+index 8985c5e..c0d3632 100644
+--- a/src/cmake/ARGoSBuildChecks.cmake
++++ b/src/cmake/ARGoSBuildChecks.cmake
+@@ -98,9 +98,14 @@ endif(ARGOS_DOCUMENTATION)
+ find_package(ASCIIDoc)
+ 
+ #
+-# Check for Lua 5.2
++# Lua: take it from the conda env (FindLua52 only knows Lua 5.2)
+ #
+-find_package(Lua52)
++find_path(LUA_INCLUDE_DIR lua.h PATHS "$ENV{PREFIX}/include" NO_DEFAULT_PATH)
++find_library(LUA_LIBRARIES NAMES lua lua5.5 lua55 PATHS "$ENV{PREFIX}/lib" NO_DEFAULT_PATH)
++if(NOT LUA_INCLUDE_DIR OR NOT LUA_LIBRARIES)
++  message(FATAL_ERROR "Lua not found in $ENV{PREFIX}")
++endif()
++set(LUA52_FOUND TRUE)
+ if(LUA52_FOUND)
+   set(ARGOS_WITH_LUA ON)
+   include_directories(${LUA_INCLUDE_DIR})

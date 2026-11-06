@@ -1,0 +1,44 @@
+Subject: [PATCH] Keep install-prefix strings valid after conda relocation
+
+DEFAULT_PLUGIN_PATH (dynamic_loading.cpp) is built from a string literal that
+contains the install prefix. Clang bakes the literal's length into the
+std::string constructor, so after conda rewrites the prefix at install time
+(a shorter path padded with NULs) the string keeps the old length and holds
+embedded NULs: dlopen() then only sees the directory and fails with
+'Can't load library "<prefix>/lib/argos3/"'.
+
+CSimulator::GetInstallationDirectory() (simulator.h) has the same problem:
+the Qt-OpenGL plugin builds its icon and texture dirs from a 255-char string
+with trailing NULs. Qt5 rejects such paths ('Broken filename passed to
+function', no icons, null ground texture); Qt6 happens to tolerate them.
+
+Reading the literal through a volatile pointer forces strlen() at runtime.
+
+diff --git a/src/core/simulator/simulator.h b/src/core/simulator/simulator.h
+index 9599f82..da2d6c3 100644
+--- a/src/core/simulator/simulator.h
++++ b/src/core/simulator/simulator.h
+@@ -290,7 +290,8 @@ namespace argos {
+        * @return The directory in which the ARGoS core was installed.
+        */
+       inline std::string GetInstallationDirectory() const {
+-         return ARGOS_INSTALL_PREFIX;
++         const char* volatile pchInstallPrefix = ARGOS_INSTALL_PREFIX;
++         return std::string(pchInstallPrefix);
+       }
+ 
+       /**
+diff --git a/src/core/utility/plugins/dynamic_loading.cpp b/src/core/utility/plugins/dynamic_loading.cpp
+index f7723e9..276edcb 100644
+--- a/src/core/utility/plugins/dynamic_loading.cpp
++++ b/src/core/utility/plugins/dynamic_loading.cpp
+@@ -15,7 +15,8 @@ namespace argos {
+    /****************************************/
+ 
+    CDynamicLoading::TDLHandleMap CDynamicLoading::m_tOpenLibs;
+-   const std::string CDynamicLoading::DEFAULT_PLUGIN_PATH = ARGOS_INSTALL_PREFIX "/lib/argos3/";
++   static const char* volatile pchDefaultPluginPath = ARGOS_INSTALL_PREFIX "/lib/argos3/";
++   const std::string CDynamicLoading::DEFAULT_PLUGIN_PATH = pchDefaultPluginPath;
+ 
+    /****************************************/
+    /****************************************/

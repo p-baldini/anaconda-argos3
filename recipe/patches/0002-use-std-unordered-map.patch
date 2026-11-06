@@ -1,0 +1,35 @@
+Subject: [PATCH] entity.h: use std::unordered_map instead of tr1
+
+entity.h picks the unordered_map header with a platform #ifdef: the Linux
+branch unconditionally uses the pre-C++11 <tr1/unordered_map> (written when
+GCC defaulted to C++03). Modern GCC and Clang no longer ship tr1/, so replace
+the whole block with the C++11 header.
+
+diff --git a/src/core/simulator/entity/entity.h b/src/core/simulator/entity/entity.h
+index 16ff124..6398ac2 100644
+--- a/src/core/simulator/entity/entity.h
++++ b/src/core/simulator/entity/entity.h
+@@ -29,22 +29,8 @@ namespace argos {
+ #include <map>
+ #include <string>
+ 
+-#if defined(__apple_build_version__ )
+-// We are on Apple, check compiler version
+-# if __clang_major__ >= 5
+-  // XCode 5.0.0 or later
+-#  include <unordered_map>
++#include <unordered_map>
+ using std::unordered_map;
+-# else
+-  // XCode 4.6.3 or earlier
+-#  include <tr1/unordered_map>
+-using std::tr1::unordered_map;
+-# endif
+-#else
+-// We are on Linux, use c++03 standard
+-# include <tr1/unordered_map>
+-using std::tr1::unordered_map;
+-#endif
+ 
+ namespace argos {
+ 

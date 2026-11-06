@@ -1,0 +1,38 @@
+Subject: [PATCH] cmake: look for Qt in the conda env, not only in Homebrew
+
+On macOS, ARGoSCheckQTOpenGL.cmake runs `brew --cellar qt` and only checks
+for Qt when Homebrew has it. That skips the conda-forge Qt in $PREFIX, and on
+a machine with Homebrew Qt it would pick up the wrong one. Drop the Homebrew
+probe and always use find_package(Qt5), which searches CMAKE_PREFIX_PATH.
+
+diff --git a/src/cmake/ARGoSCheckQTOpenGL.cmake b/src/cmake/ARGoSCheckQTOpenGL.cmake
+index af16ce2..3ce2257 100644
+--- a/src/cmake/ARGoSCheckQTOpenGL.cmake
++++ b/src/cmake/ARGoSCheckQTOpenGL.cmake
+@@ -19,7 +19,7 @@
+ #
+ # Qt 5.8 is not linked automatically by HomeBrew on MacOSX
+ # So we must find where it is
+-if(APPLE AND (NOT ARGOS_BREW_QT_CELLAR))
++if(FALSE)
+   # Get Qt cellar path
+   execute_process(
+     COMMAND brew --cellar qt
+@@ -42,9 +42,9 @@ if(APPLE AND (NOT ARGOS_BREW_QT_CELLAR))
+   else(NOT ARGOS_BREW_QT_CELLAR STREQUAL "")
+     message(STATUS "Could not find HomeBrew cellar for Qt")
+   endif(NOT ARGOS_BREW_QT_CELLAR STREQUAL "")
+-endif(APPLE AND (NOT ARGOS_BREW_QT_CELLAR))
++endif(FALSE)
+ 
+-if((NOT APPLE) OR ARGOS_BREW_QT_CELLAR)
++if(TRUE)
+   # Check for QT5
+   set(ARGOS_COMPILE_QTOPENGL false) 
+   find_package(Qt5 COMPONENTS Widgets Gui)
+@@ -93,4 +93,4 @@ if((NOT APPLE) OR ARGOS_BREW_QT_CELLAR)
+       message(STATUS "Qt5Gui not found, skipping compilation of QT-OpenGL visualization.")
+     endif(NOT Qt5Gui_FOUND)
+   endif(Qt5Widgets_FOUND AND Qt5Gui_FOUND)
+-endif((NOT APPLE) OR ARGOS_BREW_QT_CELLAR)
++endif(TRUE)

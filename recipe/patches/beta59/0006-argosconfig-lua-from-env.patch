@@ -1,0 +1,31 @@
+Subject: [PATCH] ARGoSConfig.cmake: take Lua from the environment
+
+find_package(Lua) uses CMake's FindLua, which understands Lua 5.5 only from
+CMake 4.3 on (lua.h now declares LUA_VERSION_MAJOR_N 5 instead of
+LUA_VERSION_MAJOR "5"). Older CMake, the norm on Linux, rejects the header and
+fails with 'Could NOT find Lua (missing: LUA_INCLUDE_DIR)'. Lua is a run
+dependency of the package, so take it from the environment directly and parse
+the version ourselves (both header styles).
+
+diff --git a/src/cmake/ARGoSConfig.cmake b/src/cmake/ARGoSConfig.cmake
+index f526cac..7c289c0 100644
+--- a/src/cmake/ARGoSConfig.cmake
++++ b/src/cmake/ARGoSConfig.cmake
+@@ -140,7 +140,16 @@ if(ARGOS_BUILD_FOR_SIMULATOR)
+ endif(ARGOS_BUILD_FOR_SIMULATOR)
+ 
+ if(ARGOS_WITH_LUA)
+-  find_package(Lua REQUIRED)
++  find_path(LUA_INCLUDE_DIR lua.h PATHS "${_ARGOS_PREFIX}/include" NO_DEFAULT_PATH)
++  find_library(LUA_LIBRARIES NAMES lua lua5.5 lua55 PATHS "${_ARGOS_PREFIX}/lib" NO_DEFAULT_PATH)
++  if(NOT LUA_INCLUDE_DIR OR NOT LUA_LIBRARIES)
++    message(FATAL_ERROR "Lua not found in ${_ARGOS_PREFIX}")
++  endif()
++  file(STRINGS "${LUA_INCLUDE_DIR}/lua.h" _ARGOS_LUA_VERSION_LINES
++       REGEX "^#define[ \t]+LUA_VERSION_(MAJOR|MINOR)(_N)?[ \t]+\"?[0-9]+\"?")
++  string(REGEX REPLACE ".*LUA_VERSION_MAJOR(_N)?[ \t]+\"?([0-9]+).*" "\\2" _ARGOS_LUA_MAJOR "${_ARGOS_LUA_VERSION_LINES}")
++  string(REGEX REPLACE ".*LUA_VERSION_MINOR(_N)?[ \t]+\"?([0-9]+).*" "\\2" _ARGOS_LUA_MINOR "${_ARGOS_LUA_VERSION_LINES}")
++  set(LUA_VERSION_STRING "${_ARGOS_LUA_MAJOR}.${_ARGOS_LUA_MINOR}")
+   if(${LUA_VERSION_STRING} VERSION_GREATER_EQUAL "5.3")
+     list(APPEND ARGOS_INCLUDE_DIRS "${LUA_INCLUDE_DIR}")
+     list(APPEND ARGOS_LDFLAGS "${LUA_LIBRARIES}")
