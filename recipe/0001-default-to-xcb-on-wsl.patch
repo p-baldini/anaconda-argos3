@@ -1,0 +1,33 @@
+From: Paolo Baldini <p.baldini@unibo.it>
+Subject: [PATCH] qt-opengl: default to the xcb platform on WSL
+
+On WSLg, WAYLAND_DISPLAY is set, so Qt picks its Wayland platform plugin,
+but EGL is often unavailable there and the visualization fails with
+"qt.qpa.wayland: EGL not available" / "QOpenGLWidget: Failed to create
+context". Use X11 (XWayland) instead when running on WSL, unless the user
+set QT_QPA_PLATFORM explicitly.
+
+--- a/src/plugins/simulator/visualizations/qt-opengl/qtopengl_render.cpp
++++ b/src/plugins/simulator/visualizations/qt-opengl/qtopengl_render.cpp
+@@ -13,6 +13,7 @@
+ 
+ #include <QPixmap>
+ #include <QSplashScreen>
++#include <QtGlobal>
+ 
+ namespace argos {
+ 
+@@ -31,6 +32,14 @@
+       m_ppcOptions = new char*[m_nOptionNum];
+       m_ppcOptions[0] = new char[7];
+       ::strcpy(m_ppcOptions[0], "argos3");
++      /*
++       * On WSLg, Qt picks Wayland (WAYLAND_DISPLAY is set), but EGL is often
++       * unavailable there. Default to X11/XWayland unless the user chose otherwise.
++       */
++      if(qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") && qEnvironmentVariableIsSet("WSL_DISTRO_NAME")) {
++         qputenv("QT_QPA_PLATFORM", "xcb");
++      }
+       /* Create the QT application */
+       m_pcApplication = new CQTOpenGLApplication(m_nOptionNum, m_ppcOptions);
+       /* Set some data about the application */
