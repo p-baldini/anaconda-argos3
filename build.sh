@@ -167,6 +167,23 @@ LUA_INCLUDE="$PREFIX/include"
 echo "Lua lib:     $LUA_LIB"
 echo "Lua include: $LUA_INCLUDE"
 
+# ── Linux: keep string literals from sharing bytes with the install prefix ───
+# GCC puts string literals in mergeable sections and GNU ld (with conda's
+# -Wl,-O2) merges a literal into the tail of a longer one. In beta48 the "/"
+# used by CDynamicLoading::LoadLibrary ended up as the last byte of
+# "<prefix>/lib/argos3/". conda rewrites that prefix at install time to a
+# shorter path padded with NULs, so the "/" became "" and relative library
+# paths were tried as ".build/..." instead of "./build/...": every experiment
+# with library="build/..." failed with "Can't load library". Without merging,
+# no literal can overlap a prefix string. (macOS's ld64 does not tail-merge.)
+if [[ "$(uname)" == "Linux" ]]; then
+    NO_MERGE_FLAGS="-fno-merge-constants"
+else
+    NO_MERGE_FLAGS=""
+fi
+export CFLAGS="${CFLAGS:-} $NO_MERGE_FLAGS"
+export CXXFLAGS="${CXXFLAGS:-} $NO_MERGE_FLAGS"
+
 # ── Patch beta48 CMake for lua 5.4 ───────────────────────────────────────────
 # beta48 has two problems that beta59 does not:
 #
@@ -179,12 +196,17 @@ echo "Lua include: $LUA_INCLUDE"
 #
 if [[ -f "$SRC_DIR/src/cmake/FindLua52.cmake" ]]; then
 
-  # (1) Append the lua include dir to the hardcoded CMAKE_CXX_FLAGS line
+  # (1) Append the lua include dir to the hardcoded CMAKE_CXX_FLAGS line.
+  #     The same plain set() also drops $CFLAGS/$CXXFLAGS, so add
+  #     $NO_MERGE_FLAGS (see above) to both the C and the C++ line.
   perl -i -pe \
-    "s|^set\\(CMAKE_CXX_FLAGS\\s+\"-Wall\"\\)|set(CMAKE_CXX_FLAGS \"-Wall -I$LUA_INCLUDE\")|" \
+    "s|^set\\(CMAKE_CXX_FLAGS\\s+\"-Wall\"\\)|set(CMAKE_CXX_FLAGS \"-Wall -I$LUA_INCLUDE $NO_MERGE_FLAGS\")|; s|^set\\(CMAKE_C_FLAGS\\s+\"-Wall\"\\)|set(CMAKE_C_FLAGS \"-Wall $NO_MERGE_FLAGS\")|" \
     "$SRC_DIR/src/cmake/ARGoSBuildFlags.cmake"
-  echo "--- ARGoSBuildFlags.cmake CXX flags line:"
-  grep -n 'set(CMAKE_CXX_FLAGS' "$SRC_DIR/src/cmake/ARGoSBuildFlags.cmake"
+  grep -q "^set(CMAKE_CXX_FLAGS \"-Wall -I" "$SRC_DIR/src/cmake/ARGoSBuildFlags.cmake" \
+    && grep -q "^set(CMAKE_C_FLAGS \"-Wall $NO_MERGE_FLAGS\")" "$SRC_DIR/src/cmake/ARGoSBuildFlags.cmake" \
+    || { echo "ERROR: could not patch C/CXX flags in ARGoSBuildFlags.cmake"; exit 1; }
+  echo "--- ARGoSBuildFlags.cmake C/CXX flags lines:"
+  grep -nE 'set\(CMAKE_CX?X?_FLAGS ' "$SRC_DIR/src/cmake/ARGoSBuildFlags.cmake"
 
   # (2) Replace find_package(Lua52) with direct paths
   perl -i -0pe \

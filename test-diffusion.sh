@@ -42,6 +42,7 @@ echo "Work dir: $WORK"
 
 case "$(uname -s)-$(uname -m)" in
   Linux-x86_64)  PLATFORM=linux-64 ;;
+  Linux-aarch64) PLATFORM=linux-aarch64 ;;
   Darwin-x86_64) PLATFORM=osx-64 ;;
   Darwin-arm64)  PLATFORM=osx-arm64 ;;
   *) echo "ERROR: unsupported platform $(uname -s)-$(uname -m)"; exit 1 ;;
