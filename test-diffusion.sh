@@ -194,15 +194,18 @@ run_gui() {
 run_gui default
 
 # WSL: WSLg sets WAYLAND_DISPLAY and Qt 6 would pick Wayland, which fails
-# there without EGL. The packaged patch (recipe/0001-wsl-qt-glx-defaults.patch)
+# there without EGL. The packaged patch (recipe/patches/0001-wsl-qt-glx-defaults.patch)
 # makes argos3 use xcb (and the Mesa GLX vendor) when WSL_DISTRO_NAME is set.
-# Simulate that environment and check that the Wayland plugin is not even tried.
+# Simulate that environment and check that the Wayland plugin is not even loaded.
+# QT_DEBUG_PLUGINS lists the metadata of every plugin in platforms/ (including
+# libqwayland.so) before picking one, so only the 'loaded library' lines tell
+# which plugin was actually used.
 if [[ "$(uname -s)" == "Linux" && "$GUI_MODE" == frames ]]; then
   run_gui wsl WSL_DISTRO_NAME=CI WAYLAND_DISPLAY=wayland-ci XDG_SESSION_TYPE=wayland \
               QT_DEBUG_PLUGINS=1
-  grep -q 'qxcb' "$EXAMPLES/gui-wsl.log" \
+  grep -Eq 'platforms/libqxcb\.so" loaded library' "$EXAMPLES/gui-wsl.log" \
     || { echo "ERROR: WSL test: Qt did not load the xcb platform plugin"; exit 1; }
-  if grep -qi 'qwayland\|wl_display' "$EXAMPLES/gui-wsl.log"; then
+  if grep -Eq 'platforms/libqwayland[^"]*" loaded library|wl_display' "$EXAMPLES/gui-wsl.log"; then
     echo "ERROR: WSL test: Qt tried the Wayland platform plugin"; exit 1
   fi
 fi
