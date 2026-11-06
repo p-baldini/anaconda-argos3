@@ -58,7 +58,18 @@ jobs:
           run-id: ${{ inputs.run-id || github.run_id }}
           github-token: ${{ github.token }}
 
+      # GUI builds are also run with the Qt-OpenGL visualization: on Linux
+      # under Xvfb, with the system Mesa (llvmpipe) as OpenGL driver, as a
+      # user's machine would provide it. macOS runners have a GUI session.
+      - name: Install Xvfb and Mesa
+        if: runner.os == 'Linux' && !endsWith(matrix.version, '-headless')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb xauth libgl1-mesa-dri libglx-mesa0 libegl-mesa0
+
       - name: Run diffusion example
+        env:
+          GUI_ARTIFACTS_DIR: ${{ github.workspace }}/gui-test
         run: |
           pkgs=(pkg/argos3-*.conda)
           if [ "${#pkgs[@]}" -ne 1 ]; then
@@ -66,3 +77,13 @@ jobs:
             exit 1
           fi
           ./test-diffusion.sh "${pkgs[0]}"
+
+      # Rendered frames and logs of the GUI test, to check them by eye.
+      - name: Upload GUI test output
+        if: always() && !endsWith(matrix.version, '-headless')
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui-test-${{ matrix.version }}-${{ matrix.platform.target }}
+          path: gui-test/
+          if-no-files-found: ignore
+          retention-days: 7
